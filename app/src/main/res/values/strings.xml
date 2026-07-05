@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Kilgi</string>
+    <string name="module_one_title">Module 1: Landed Cost &amp; Procurement</string>
+    <string name="module_one_subtitle">Interactive in-memory prototype for vegetable vendor inventory. No database storage yet.</string>
+    <string name="module_one_scope">Functional requirements covered in this screen:</string>
+    <string name="module_one_scope_items">• Batch (lot) creation fields\n• Automatic landed cost calculation\n• Dynamic spoilage / waste logging\n• True cost per kilo recalculation\n• Sack / crate to kilogram conversion</string>
+    <string name="module_one_domain_title">Implemented domain classes</string>
+    <string name="module_one_domain_items">• ProcurementBatch\n• SpoilageEntry\n• MeasuredWholesaleUnits\n• UnitConversion\n• LandedCostCalculator\n• TrueCostPerKiloEngine</string>
+    <string name="batch_form_title">Batch creation form</string>
+    <string name="batch_form_caption">Enter the product, supplier, actual weight of each purchased wholesale unit, and all acquisition costs.</string>
+    <string name="hint_product_name">Product name</string>
+    <string name="hint_provider_name">Provider / supplier name</string>
+    <string name="hint_unit_name">Wholesale unit name (e.g. sack, crate)</string>
+    <string name="hint_unit_weights">Actual unit weights in kg, separated by commas or new lines</string>
+    <string name="hint_base_item_price">Base item price</string>
+    <string name="hint_shipping_fees">Shipping fees</string>
+    <string name="hint_store_delivery_fees">Store delivery fees</string>
+    <string name="hint_raw_sorting_labor">Raw sorting labor cost</string>
+    <string name="hint_packaging_material_cost">Plastic / sack material cost</string>
+    <string name="button_create_batch">Create / recalculate active batch</string>
+    <string name="batch_status_idle">No active batch yet. Use the form below to create one.</string>
+    <string name="batch_created_message">Active batch created. You can now log spoilage below.</string>
+    <string name="spoilage_title">Spoilage / waste log</string>
+    <string name="spoilage_caption">Log spoilage against the current active batch to instantly recompute remaining sellable weight and true cost per kilo.</string>
+    <string name="hint_spoilage_weight">Spoilage weight in kg</string>
+    <string name="hint_spoilage_reason">Reason for spoilage</string>
+    <string name="button_log_spoilage">Log spoilage</string>
+    <string name="spoilage_status_idle">No spoilage logged yet.</string>
+    <string name="error_no_active_batch">Create an active batch first before logging spoilage.</string>
+    <string name="spoilage_logged_message">Spoilage logged successfully.</string>
+    <string name="results_title">Active batch summary</string>
+    <string name="results_placeholder">Results will appear here after creating a batch.</string>
+</resources>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/module_one_title"
+            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/module_one_subtitle"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/module_one_scope"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp"
+            android:text="@string/module_one_scope_items"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/module_one_domain_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp"
+            android:text="@string/module_one_domain_items"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/batch_form_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/batch_form_caption"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <EditText
+            android:id="@+id/edit_product_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="@string/hint_product_name"
+            android:inputType="textCapWords"
+            tools:text="Tomato" />
+
+        <EditText
+            android:id="@+id/edit_provider_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_provider_name"
+            android:inputType="textCapWords"
+            tools:text="Davao Growers Cooperative" />
+
+        <EditText
+            android:id="@+id/edit_unit_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_unit_name"
+            android:inputType="textCapWords"
+            tools:text="Sack" />
+
+        <EditText
+            android:id="@+id/edit_unit_weights"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="top|start"
+            android:hint="@string/hint_unit_weights"
+            android:inputType="textMultiLine"
+            android:minLines="3"
+            tools:text="24.0, 26.5, 23.5, 26.0" />
+
+        <EditText
+            android:id="@+id/edit_base_item_price"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_base_item_price"
+            android:inputType="numberDecimal"
+            tools:text="5000" />
+
+        <EditText
+            android:id="@+id/edit_shipping_fees"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_shipping_fees"
+            android:inputType="numberDecimal"
+            tools:text="300" />
+
+        <EditText
+            android:id="@+id/edit_store_delivery_fees"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_store_delivery_fees"
+            android:inputType="numberDecimal"
+            tools:text="200" />
+
+        <EditText
+            android:id="@+id/edit_raw_sorting_labor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_raw_sorting_labor"
+            android:inputType="numberDecimal"
+            tools:text="150" />
+
+        <EditText
+            android:id="@+id/edit_packaging_material_cost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_packaging_material_cost"
+            android:inputType="numberDecimal"
+            tools:text="50" />
+
+        <Button
+            android:id="@+id/button_create_batch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/button_create_batch"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:id="@+id/text_batch_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/batch_status_idle"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/spoilage_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/spoilage_caption"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <EditText
+            android:id="@+id/edit_spoilage_weight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_spoilage_weight"
+            android:inputType="numberDecimal"
+            tools:text="10" />
+
+        <EditText
+            android:id="@+id/edit_spoilage_reason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_spoilage_reason"
+            android:inputType="textCapSentences"
+            tools:text="Rotten tomatoes" />
+
+        <Button
+            android:id="@+id/button_log_spoilage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/button_log_spoilage"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:id="@+id/text_spoilage_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/spoilage_status_idle"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/results_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_batch_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp"
+            android:minLines="8"
+            android:text="@string/results_placeholder"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            tools:text="Product: Tomato&#10;Provider: Davao Growers Cooperative&#10;Purchased units: 4 sacks&#10;Total landed cost: ₱5,700.00&#10;Initial weight: 100.00 kg&#10;Remaining sellable weight: 90.00 kg&#10;Initial cost per kilo: ₱57.00&#10;True cost per kilo: ₱63.33" />
+
+    </LinearLayout>
+</ScrollView>
