@@ -50,6 +50,22 @@ public final class InventoryInputParser {
         }
     }
 
+    public static int parseRequiredPositiveInt(String rawValue, String fieldName) {
+        if (rawValue == null || rawValue.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " is required.");
+        }
+
+        try {
+            int value = Integer.parseInt(rawValue.trim());
+            if (value <= 0) {
+                throw new IllegalArgumentException(fieldName + " must be greater than zero.");
+            }
+            return value;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(fieldName + " must be a valid whole number.");
+        }
+    }
+
     public static List<Double> parseMeasuredWeights(String rawValue, String fieldName) {
         if (rawValue == null || rawValue.trim().isEmpty()) {
             throw new IllegalArgumentException(fieldName + " is required.");

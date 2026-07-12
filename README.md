@@ -1,46 +1,86 @@
 # Kilgi
 
-Kilgi is an Android app for vegetable vendors. The current implementation starts **Module 1: Landed Cost & Procurement (Inventory)** with an **interactive in-memory prototype** and no database yet.
+Kilgi is an Android app for vegetable vendors. Module 1 now runs as a **Room-backed landed cost procurement and inventory ledger prototype** for Carbon Market operations.
 
-## Implemented domain layer
+## What Module 1 now does
 
-The module lives under `app/src/main/java/com/example/kilgi/inventory/`.
+- Creates vegetable lots in a normalized local Room database.
+- Tracks dynamic additional batch expenses in a separate child table.
+- Tracks spoilage logs with `NORMAL` and `ABNORMAL` valuation behavior.
+- Recomputes:
+  - **Total Capitalized Cost**
+  - **Net Usable Kilograms**
+  - **True Cost Per Kilo**
+- Persists automated **double-entry journal entries** for:
+  - initial lot creation
+  - later capitalized expenses
+  - abnormal spoilage write-offs
 
-### Models
-- `ProcurementBatch` - represents one purchased vegetable batch / lot.
-- `SpoilageEntry` - records spoilage or waste in kilograms.
-- `MeasuredWholesaleUnits` - stores the actual kilogram weight of each purchased sack, crate, or pack.
-- `UnitConversion` - converts sacks, crates, or other wholesale units into kilograms using actual measured unit weights.
+## Room schema
 
-### Calculation engines
-- `LandedCostCalculator` - adds base item price, shipping, store delivery, raw sorting labor, and packaging/material cost.
-- `TrueCostPerKiloEngine` - recalculates per-kilo cost based on remaining sellable kilograms after spoilage.
+The database layer lives under `app/src/main/java/com/example/kilgi/inventory/data/`.
 
-## Covered business rules
-- Batch creation stores provider, product, wholesale quantity, and cost inputs.
-- Batch weight is calculated from the actual measured weight of each purchased sack/crate, not from a fixed same-weight assumption.
-- Landed cost is computed automatically from all procurement-related costs.
-- Spoilage can be logged multiple times on the same batch.
-- Spoilage cannot exceed the original batch weight.
-- True cost per kilo increases automatically as sellable kilograms decrease.
-- Wholesale unit conversion is configurable per vendor batch and supports different weights per purchased unit.
+- `lots`
+- `batch_expenses`
+- `spoilage_logs`
+- `journal_entries`
+- `journal_lines`
 
-## Current screen behavior
+## Accounting rules implemented
 
-- The launcher screen includes a **Batch Creation Form**.
-- Users can enter actual sack/crate weights as comma-separated or newline-separated kilograms.
-- Creating a batch recalculates the active batch summary in memory only.
-- The same screen includes a **Spoilage / Waste Log** for the current active batch.
-- Logging spoilage updates remaining sellable weight and true cost per kilo immediately.
-- No values are persisted yet; everything resets when the app restarts.
+### Accounts
+- `10100` Cash / Mobile Wallet
+- `12000` Merchandise Inventory - Vegetables
+- `20100` Accounts Payable - Providers
+- `50100` Cost of Goods Sold (reserved for Module 2)
+- `50200` Inventory Loss - Spoilage/Waste
 
-## Run unit tests
+### Automated journal behavior
+- **Initial lot creation**
+  - Debit inventory for purchase cost plus standard freight
+  - Credit purchase payment source (`AP` or `CASH`)
+  - Credit freight payment source (`AP` or `CASH`)
+- **Additional expense**
+  - Debit inventory
+  - Credit selected payment source
+- **Normal spoilage**
+  - No journal entry
+  - Remaining good kilos absorb the same capitalized cost, increasing true cost per kilo
+- **Abnormal spoilage**
+  - Debit `50200 Inventory Loss - Spoilage/Waste`
+  - Credit `12000 Merchandise Inventory - Vegetables`
+  - Write-off amount is calculated at the current pre-loss unit cost
+
+## Main packages
+
+- `inventory/data` - Room entities, DAOs, enums, and database singleton
+- `inventory/service` - valuation engine and repository orchestration
+- `inventory/accounting` - journal draft builders and chart-of-accounts constants
+
+Legacy in-memory domain classes remain in the project for reference, but the launcher screen now uses the Room-backed flow.
+
+## Current launcher screen
+
+`MainActivity` now supports:
+
+- baseline lot creation
+- selecting/loading a persisted lot by `lot_id`
+- appending dynamic batch expenses
+- logging normal or abnormal spoilage
+- viewing live lot valuation
+- viewing all saved lots
+- viewing stored journal entries for the selected lot
+
+## Run tests
 
 ```powershell
-.\gradlew.bat test
+.\gradlew.bat test --console=plain
 ```
 
-## Next likely step
-- Add a dynamic per-unit weight entry UI instead of a comma-separated text field.
-- Keep persistence out for now, or later connect the same models to Room/database storage.
+## Next likely improvements
+
+- Add a dedicated providers master table
+- Add RecyclerView-based lot and journal screens
+- Add Module 2 sale posting into `50100 COGS`
+- Add Room migrations once the schema starts evolving
 

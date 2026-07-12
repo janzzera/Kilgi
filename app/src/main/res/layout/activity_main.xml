@@ -47,22 +47,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="@string/module_one_domain_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:lineSpacingExtra="4dp"
-            android:text="@string/module_one_domain_items"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:text="@string/batch_form_title"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
             android:textStyle="bold" />
@@ -75,13 +59,13 @@
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
         <EditText
-            android:id="@+id/edit_product_name"
+            android:id="@+id/edit_provider_id"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="@string/hint_product_name"
-            android:inputType="textCapWords"
-            tools:text="Tomato" />
+            android:hint="@string/hint_provider_id"
+            android:inputType="textCapCharacters"
+            tools:text="PROV-XYZ" />
 
         <EditText
             android:id="@+id/edit_provider_name"
@@ -90,79 +74,83 @@
             android:layout_marginTop="12dp"
             android:hint="@string/hint_provider_name"
             android:inputType="textCapWords"
-            tools:text="Davao Growers Cooperative" />
+            tools:text="Provider XYZ" />
 
         <EditText
-            android:id="@+id/edit_unit_name"
+            android:id="@+id/edit_vegetable_type"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_unit_name"
+            android:hint="@string/hint_vegetable_type"
             android:inputType="textCapWords"
-            tools:text="Sack" />
+            tools:text="Tomatoes" />
 
         <EditText
-            android:id="@+id/edit_unit_weights"
+            android:id="@+id/edit_total_sacks"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:gravity="top|start"
-            android:hint="@string/hint_unit_weights"
-            android:inputType="textMultiLine"
-            android:minLines="3"
-            tools:text="24.0, 26.5, 23.5, 26.0" />
+            android:hint="@string/hint_total_sacks"
+            android:inputType="number"
+            tools:text="4" />
 
         <EditText
-            android:id="@+id/edit_base_item_price"
+            android:id="@+id/edit_raw_kilos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_base_item_price"
+            android:hint="@string/hint_raw_kilos"
             android:inputType="numberDecimal"
-            tools:text="5000" />
+            tools:text="100" />
 
         <EditText
-            android:id="@+id/edit_shipping_fees"
+            android:id="@+id/edit_base_unit_price"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_shipping_fees"
+            android:hint="@string/hint_base_unit_price"
             android:inputType="numberDecimal"
-            tools:text="300" />
+            tools:text="1.50" />
 
-        <EditText
-            android:id="@+id/edit_store_delivery_fees"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_store_delivery_fees"
-            android:inputType="numberDecimal"
-            tools:text="200" />
+            android:text="@string/label_purchase_payment_source"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <Spinner
+            android:id="@+id/spinner_purchase_payment_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <EditText
-            android:id="@+id/edit_raw_sorting_labor"
+            android:id="@+id/edit_standard_freight"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_raw_sorting_labor"
+            android:hint="@string/hint_standard_freight"
             android:inputType="numberDecimal"
-            tools:text="150" />
+            tools:text="20" />
 
-        <EditText
-            android:id="@+id/edit_packaging_material_cost"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_packaging_material_cost"
-            android:inputType="numberDecimal"
-            tools:text="50" />
+            android:text="@string/label_freight_payment_source"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <Spinner
+            android:id="@+id/spinner_freight_payment_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <Button
-            android:id="@+id/button_create_batch"
+            android:id="@+id/button_create_lot"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="@string/button_create_batch"
+            android:text="@string/button_create_lot"
             android:textAllCaps="false" />
 
         <TextView
@@ -171,6 +159,99 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/batch_status_idle"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/active_lot_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/active_lot_caption"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <EditText
+            android:id="@+id/edit_selected_lot_id"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_selected_lot_id"
+            android:inputType="textNoSuggestions"
+            tools:text="sample-lot-id" />
+
+        <Button
+            android:id="@+id/button_refresh_lot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/button_refresh_lot"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/expense_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/expense_caption"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <EditText
+            android:id="@+id/edit_expense_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_expense_label"
+            android:inputType="textCapSentences"
+            tools:text="Market porter fee" />
+
+        <EditText
+            android:id="@+id/edit_expense_amount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_expense_amount"
+            android:inputType="numberDecimal"
+            tools:text="10" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/label_expense_payment_source"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <Spinner
+            android:id="@+id/spinner_expense_payment_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/button_add_expense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/button_add_expense"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:id="@+id/text_expense_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/expense_status_idle"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
         <TextView
@@ -189,22 +270,25 @@
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
         <EditText
-            android:id="@+id/edit_spoilage_weight"
+            android:id="@+id/edit_spoilage_kilos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_spoilage_weight"
+            android:hint="@string/hint_spoilage_kilos"
             android:inputType="numberDecimal"
-            tools:text="10" />
+            tools:text="15" />
 
-        <EditText
-            android:id="@+id/edit_spoilage_reason"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="@string/hint_spoilage_reason"
-            android:inputType="textCapSentences"
-            tools:text="Rotten tomatoes" />
+            android:text="@string/label_loss_type"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <Spinner
+            android:id="@+id/spinner_loss_type"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <Button
             android:id="@+id/button_log_spoilage"
@@ -231,15 +315,50 @@
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/text_batch_summary"
+            android:id="@+id/text_active_lot_summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:lineSpacingExtra="4dp"
-            android:minLines="8"
-            android:text="@string/results_placeholder"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-            tools:text="Product: Tomato&#10;Provider: Davao Growers Cooperative&#10;Purchased units: 4 sacks&#10;Total landed cost: ₱5,700.00&#10;Initial weight: 100.00 kg&#10;Remaining sellable weight: 90.00 kg&#10;Initial cost per kilo: ₱57.00&#10;True cost per kilo: ₱63.33" />
+            android:minLines="12"
+            android:text="@string/no_active_lot_placeholder"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/all_lots_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_all_lots_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp"
+            android:minLines="4"
+            android:text="@string/no_lots_placeholder"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/journal_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_journal_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp"
+            android:minLines="6"
+            android:text="@string/no_journal_placeholder"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
     </LinearLayout>
 </ScrollView>
