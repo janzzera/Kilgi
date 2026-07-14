@@ -1,5 +1,6 @@
 package com.example.kilgi;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -15,10 +16,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.material.appbar.MaterialToolbar;
-import com.example.kilgi.inventory.data.JournalEntryWithLines;
-import com.example.kilgi.inventory.data.JournalLineEntity;
-import com.example.kilgi.inventory.data.JournalLineType;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.LossType;
 import com.example.kilgi.inventory.data.LotEntity;
@@ -28,6 +25,7 @@ import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
 import com.example.kilgi.inventory.service.BatchValuationSnapshot;
 import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.text.NumberFormat;
 import java.util.List;
@@ -62,11 +60,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView spoilageStatusView;
     private TextView activeLotSummaryView;
     private TextView lotsOverviewView;
-    private TextView journalSummaryView;
     private View lotSectionView;
-    private View journalSectionView;
 
     private ModuleOneRepository repository;
+    private String initialLotId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        initialLotId = getIntent().getStringExtra(JournalActivity.EXTRA_LOT_ID);
         repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         bindViews();
         setupTopAppBar();
@@ -117,12 +115,11 @@ public class MainActivity extends AppCompatActivity {
         spoilageStatusView = findViewById(R.id.text_spoilage_status);
         activeLotSummaryView = findViewById(R.id.text_active_lot_summary);
         lotsOverviewView = findViewById(R.id.text_all_lots_summary);
-        journalSummaryView = findViewById(R.id.text_journal_summary);
         lotSectionView = findViewById(R.id.section_lot);
-        journalSectionView = findViewById(R.id.section_journal);
     }
 
     private void setupTopAppBar() {
+        topAppBar.setTitle(R.string.lot_screen_title);
         topAppBar.inflateMenu(R.menu.main_sections_menu);
         topAppBar.setOnMenuItemClickListener(item -> handleMenuNavigation(item.getItemId()));
     }
@@ -195,7 +192,13 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (itemId == R.id.menu_journal) {
-            scrollToSection(journalSectionView);
+            Intent intent = new Intent(this, JournalActivity.class);
+            String selectedLotId = selectedLotIdInput.getText().toString().trim();
+            if (!selectedLotId.isEmpty()) {
+                intent.putExtra(JournalActivity.EXTRA_LOT_ID, selectedLotId);
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
             return true;
         }
         return false;
@@ -210,8 +213,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadInitialDashboard() {
         ioExecutor.execute(() -> {
-            LotEntity latestLot = repository.getLatestLot();
-            String targetLotId = latestLot == null ? null : latestLot.lotId;
+            String targetLotId = initialLotId;
+            if (targetLotId == null || targetLotId.trim().isEmpty()) {
+                LotEntity latestLot = repository.getLatestLot();
+                targetLotId = latestLot == null ? null : latestLot.lotId;
+            }
             refreshDashboardOnWorker(targetLotId, null, null, null);
         });
     }
@@ -332,7 +338,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
             String activeSummary = getString(R.string.no_active_lot_placeholder);
-            String journalSummary = getString(R.string.no_journal_placeholder);
             if (effectiveLotId != null && !effectiveLotId.trim().isEmpty()) {
                 LotWithDetails lotWithDetails = repository.getLotWithDetails(effectiveLotId);
                 BatchValuationSnapshot snapshot = BatchValuationEngine.calculate(
@@ -341,13 +346,11 @@ public class MainActivity extends AppCompatActivity {
                         lotWithDetails.spoilageLogs
                 );
                 activeSummary = buildActiveLotSummary(lotWithDetails, snapshot);
-                journalSummary = buildJournalSummary(repository.getJournalEntries(effectiveLotId));
             }
 
             String lotsOverview = buildLotsOverview(allLots);
             String finalEffectiveLotId = effectiveLotId;
             String finalActiveSummary = activeSummary;
-            String finalJournalSummary = journalSummary;
             runOnUiThread(() -> {
                 if (finalEffectiveLotId != null) {
                     selectedLotIdInput.setText(finalEffectiveLotId);
@@ -366,7 +369,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 activeLotSummaryView.setText(finalActiveSummary);
                 lotsOverviewView.setText(lotsOverview);
-                journalSummaryView.setText(finalJournalSummary);
             });
         } catch (Exception exception) {
             postStatuses(exception.getMessage(), exception.getMessage(), exception.getMessage());
@@ -440,36 +442,6 @@ public class MainActivity extends AppCompatActivity {
                         .append("\n");
             } catch (Exception exception) {
                 builder.append("• ").append(lot.lotId).append(" | ").append(exception.getMessage()).append("\n");
-            }
-        }
-        return builder.toString().trim();
-    }
-
-    private String buildJournalSummary(List<JournalEntryWithLines> entries) {
-        if (entries == null || entries.isEmpty()) {
-            return getString(R.string.no_journal_placeholder);
-        }
-
-        StringBuilder builder = new StringBuilder();
-        for (JournalEntryWithLines entry : entries) {
-            builder.append(entry.entry.eventType)
-                    .append(" - ")
-                    .append(entry.entry.description)
-                    .append("\n");
-            for (JournalLineEntity line : entry.lines) {
-                String prefix = JournalLineType.valueOf(line.lineType) == JournalLineType.DEBIT ? "DR" : "CR";
-                builder.append("   ")
-                        .append(prefix)
-                        .append(" ")
-                        .append(line.accountCode)
-                        .append(" ")
-                        .append(line.accountName)
-                        .append(" | ")
-                        .append(currencyFormat.format(line.amount));
-                if (line.memo != null && !line.memo.trim().isEmpty()) {
-                    builder.append(" | ").append(line.memo);
-                }
-                builder.append("\n");
             }
         }
         return builder.toString().trim();
