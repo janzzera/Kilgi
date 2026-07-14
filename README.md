@@ -59,9 +59,9 @@ The database layer lives under `app/src/main/java/com/example/kilgi/inventory/da
 
 Legacy in-memory domain classes remain in the project for reference, but the launcher screen now uses the Room-backed flow.
 
-## Current launcher screen
+## Current screens
 
-`MainActivity` now supports:
+`MainActivity` now serves as the dedicated **Lot** screen and supports:
 
 - a top menu with `Lot` and `Journal` entry points that can grow with future modules
 - baseline lot creation
@@ -70,7 +70,12 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 - logging normal or abnormal spoilage
 - viewing live lot valuation
 - viewing all saved lots
-- viewing stored journal entries for the selected lot
+
+`JournalActivity` now provides a dedicated **Journal** screen that:
+
+- loads the latest or selected lot journal
+- displays journal entries grouped by event
+- shows debit and credit lines in entry-style cards with account, amount, memo, payment source, and provider details when available
 
 ## Run tests
 
