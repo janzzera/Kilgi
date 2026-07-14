@@ -1,9 +1,11 @@
 package com.example.kilgi;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -13,6 +15,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.JournalLineEntity;
 import com.example.kilgi.inventory.data.JournalLineType;
@@ -37,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "PH"));
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
+    private MaterialToolbar topAppBar;
+    private ScrollView contentScrollView;
     private EditText providerIdInput;
     private EditText providerNameInput;
     private EditText vegetableTypeInput;
@@ -58,6 +63,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView activeLotSummaryView;
     private TextView lotsOverviewView;
     private TextView journalSummaryView;
+    private View lotSectionView;
+    private View journalSectionView;
 
     private ModuleOneRepository repository;
 
@@ -74,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
         repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         bindViews();
+        setupTopAppBar();
         setupSpinners();
         prefillSampleForm();
         bindActions();
@@ -87,6 +95,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bindViews() {
+        topAppBar = findViewById(R.id.top_app_bar);
+        contentScrollView = findViewById(R.id.content_scroll);
         providerIdInput = findViewById(R.id.edit_provider_id);
         providerNameInput = findViewById(R.id.edit_provider_name);
         vegetableTypeInput = findViewById(R.id.edit_vegetable_type);
@@ -108,6 +118,13 @@ public class MainActivity extends AppCompatActivity {
         activeLotSummaryView = findViewById(R.id.text_active_lot_summary);
         lotsOverviewView = findViewById(R.id.text_all_lots_summary);
         journalSummaryView = findViewById(R.id.text_journal_summary);
+        lotSectionView = findViewById(R.id.section_lot);
+        journalSectionView = findViewById(R.id.section_journal);
+    }
+
+    private void setupTopAppBar() {
+        topAppBar.inflateMenu(R.menu.main_sections_menu);
+        topAppBar.setOnMenuItemClickListener(item -> handleMenuNavigation(item.getItemId()));
     }
 
     private void setupSpinners() {
@@ -170,6 +187,25 @@ public class MainActivity extends AppCompatActivity {
         refreshLotButton.setOnClickListener(v -> refreshSelectedLot());
         addExpenseButton.setOnClickListener(v -> addExpense());
         logSpoilageButton.setOnClickListener(v -> logSpoilage());
+    }
+
+    private boolean handleMenuNavigation(int itemId) {
+        if (itemId == R.id.menu_lot) {
+            scrollToSection(lotSectionView);
+            return true;
+        }
+        if (itemId == R.id.menu_journal) {
+            scrollToSection(journalSectionView);
+            return true;
+        }
+        return false;
+    }
+
+    private void scrollToSection(View sectionView) {
+        if (sectionView == null || contentScrollView == null) {
+            return;
+        }
+        contentScrollView.post(() -> contentScrollView.smoothScrollTo(0, sectionView.getTop()));
     }
 
     private void loadInitialDashboard() {

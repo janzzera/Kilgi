@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_lot"
+        android:title="@string/menu_lot"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/menu_journal"
+        android:title="@string/menu_journal"
+        app:showAsAction="ifRoom" />
+</menu>
+

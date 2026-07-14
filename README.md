@@ -63,6 +63,7 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 
 `MainActivity` now supports:
 
+- a top menu with `Lot` and `Journal` entry points that can grow with future modules
 - baseline lot creation
 - selecting/loading a persisted lot by `lot_id`
 - appending dynamic batch expenses
