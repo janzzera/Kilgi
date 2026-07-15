@@ -1,5 +1,7 @@
 package com.example.kilgi.inventory.service;
 
+import com.example.kilgi.inventory.accounting.AccountingAccount;
+import com.example.kilgi.inventory.accounting.AccountingCatalog;
 import com.example.kilgi.inventory.accounting.JournalEntryFactory;
 import com.example.kilgi.inventory.accounting.LedgerEntryDraft;
 import com.example.kilgi.inventory.data.BatchExpenseEntity;
@@ -18,6 +20,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 public class ModuleOneAccountingTest {
 
@@ -31,9 +34,36 @@ public class ModuleOneAccountingTest {
         assertEquals(3, draft.getLines().size());
         assertEquals(170.0, sumByType(draft.getLines(), JournalLineType.DEBIT), 0.0001);
         assertEquals(170.0, sumByType(draft.getLines(), JournalLineType.CREDIT), 0.0001);
-        assertEquals("12000", draft.getLines().get(0).accountCode);
-        assertEquals("20100", draft.getLines().get(1).accountCode);
-        assertEquals("10100", draft.getLines().get(2).accountCode);
+        assertEquals(AccountingCatalog.INVENTORY_CODE, draft.getLines().get(0).accountCode);
+        assertEquals(AccountingCatalog.ACCOUNTS_PAYABLE_CODE, draft.getLines().get(1).accountCode);
+        assertEquals(AccountingCatalog.CASH_CODE, draft.getLines().get(2).accountCode);
+    }
+
+    @Test
+    public void chartOfAccounts_exposesExpectedMerchandisingAccountsByCategory() {
+        assertEquals(AccountingAccount.Category.ASSET, AccountingCatalog.CASH_IN_BANK.getCategory());
+        assertEquals(AccountingAccount.Category.LIABILITY, AccountingCatalog.ACCOUNTS_PAYABLE.getCategory());
+        assertEquals(AccountingAccount.Category.OWNER_EQUITY, AccountingCatalog.CAPITAL.getCategory());
+        assertEquals(AccountingAccount.Category.REVENUE, AccountingCatalog.SALES.getCategory());
+        assertEquals(AccountingAccount.Category.COST, AccountingCatalog.PURCHASES.getCategory());
+        assertEquals(AccountingAccount.Category.EXPENSE, AccountingCatalog.FREIGHT_OUT.getCategory());
+        assertEquals(4, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.ASSET).size());
+        assertEquals(2, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.LIABILITY).size());
+        assertEquals(2, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.OWNER_EQUITY).size());
+        assertEquals(3, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.REVENUE).size());
+        assertEquals(5, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.COST).size());
+        assertEquals(8, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.EXPENSE).size());
+        assertEquals(24, AccountingCatalog.getAllAccounts().size());
+    }
+
+    @Test
+    public void accountLookups_andPaymentSources_resolveToCentralCatalog() {
+        assertSame(AccountingCatalog.CASH_IN_BANK, AccountingCatalog.requireByCode(AccountingCatalog.CASH_CODE));
+        assertSame(AccountingCatalog.ACCOUNTS_PAYABLE, AccountingCatalog.requireByCode(AccountingCatalog.ACCOUNTS_PAYABLE_CODE));
+        assertEquals(AccountingCatalog.CASH_CODE, PaymentSource.CASH.getAccountCode());
+        assertEquals(AccountingCatalog.CASH_NAME, PaymentSource.CASH.getAccountName());
+        assertEquals(AccountingCatalog.ACCOUNTS_PAYABLE_CODE, PaymentSource.ACCOUNTS_PAYABLE.getAccountCode());
+        assertEquals(AccountingCatalog.ACCOUNTS_PAYABLE_NAME, PaymentSource.ACCOUNTS_PAYABLE.getAccountName());
     }
 
     @Test

@@ -28,12 +28,45 @@ The database layer lives under `app/src/main/java/com/example/kilgi/inventory/da
 
 ## Accounting rules implemented
 
-### Accounts
-- `10100` Cash / Mobile Wallet
+### Chart of accounts
+
+The app now keeps a centralized merchandising-oriented chart of accounts in `inventory/accounting/AccountingCatalog.java` so the same account codes and names are reused consistently across automated journal entries and the journal screen.
+
+#### Assets
+- `10100` Cash in Bank
+- `10300` Accounts Receivable
+- `11500` Office Equipment
 - `12000` Merchandise Inventory - Vegetables
-- `20100` Accounts Payable - Providers
-- `50100` Cost of Goods Sold (reserved for Module 2)
-- `50200` Inventory Loss - Spoilage/Waste
+
+#### Liabilities
+- `20100` Accounts Payable
+- `20200` Notes Payable
+
+#### Owner's Equity
+- `30100` Capital
+- `30200` Drawing
+
+#### Revenues
+- `40100` Sales
+- `40200` Sales Discount
+- `40300` Sales Returns and Allowances
+
+#### Costs
+- `50100` Purchases
+- `50200` Freight-In
+- `50300` Purchase Discount
+- `50400` Purchase Returns and Allowances
+- `50500` Cost of Goods Sold (reserved for Module 2)
+
+#### Expenses
+- `60100` Taxes and Licenses Expense
+- `60200` Freight-Out
+- `60300` Rent Expense
+- `60400` Utilities Expense
+- `60500` Advertising Expense
+- `60600` Salaries Expense
+- `60700` Supplies Expense
+- `60800` Inventory Loss - Spoilage/Waste
 
 ### Automated journal behavior
 - **Initial lot creation**
@@ -47,7 +80,7 @@ The database layer lives under `app/src/main/java/com/example/kilgi/inventory/da
   - No journal entry
   - Remaining good kilos absorb the same capitalized cost, increasing true cost per kilo
 - **Abnormal spoilage**
-  - Debit `50200 Inventory Loss - Spoilage/Waste`
+  - Debit `60800 Inventory Loss - Spoilage/Waste`
   - Credit `12000 Merchandise Inventory - Vegetables`
   - Write-off amount is calculated at the current pre-loss unit cost
 
@@ -74,6 +107,7 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 `JournalActivity` now provides a dedicated **Journal** screen that:
 
 - loads the latest or selected lot journal
+- shows the current chart of accounts grouped by accounting classification for easier journalizing reference
 - displays journal entries grouped by event
 - shows debit and credit lines in entry-style cards with account, amount, memo, payment source, and provider details when available
 

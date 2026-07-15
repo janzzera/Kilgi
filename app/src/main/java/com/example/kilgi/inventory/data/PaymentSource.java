@@ -1,11 +1,15 @@
 package com.example.kilgi.inventory.data;
 
+import androidx.annotation.NonNull;
+
+import com.example.kilgi.inventory.accounting.AccountingCatalog;
+
 /**
  * Source account used to settle a procurement-related obligation.
  */
 public enum PaymentSource {
-    CASH("CASH", "10100", "Cash / Mobile Wallet"),
-    ACCOUNTS_PAYABLE("AP", "20100", "Accounts Payable - Providers");
+    CASH("CASH", AccountingCatalog.CASH_CODE, AccountingCatalog.CASH_NAME),
+    ACCOUNTS_PAYABLE("AP", AccountingCatalog.ACCOUNTS_PAYABLE_CODE, AccountingCatalog.ACCOUNTS_PAYABLE_NAME);
 
     private final String storedValue;
     private final String accountCode;
@@ -39,6 +43,7 @@ public enum PaymentSource {
     }
 
     @Override
+    @NonNull
     public String toString() {
         return storedValue;
     }

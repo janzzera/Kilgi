@@ -18,6 +18,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.kilgi.inventory.accounting.AccountingAccount;
+import com.example.kilgi.inventory.accounting.AccountingCatalog;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.JournalLineEntity;
 import com.example.kilgi.inventory.data.JournalLineType;
@@ -50,6 +52,7 @@ public class JournalActivity extends AppCompatActivity {
     private EditText selectedLotIdInput;
     private TextView journalStatusView;
     private TextView journalLotSummaryView;
+    private TextView chartOfAccountsView;
     private TextView journalEmptyStateView;
     private LinearLayout journalEntriesContainer;
 
@@ -70,6 +73,7 @@ public class JournalActivity extends AppCompatActivity {
         initialLotId = getIntent().getStringExtra(EXTRA_LOT_ID);
         repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         bindViews();
+        chartOfAccountsView.setText(buildChartOfAccountsText());
         setupTopAppBar();
         bindActions();
         loadInitialJournal();
@@ -87,6 +91,7 @@ public class JournalActivity extends AppCompatActivity {
         selectedLotIdInput = findViewById(R.id.edit_selected_lot_id);
         journalStatusView = findViewById(R.id.text_journal_status);
         journalLotSummaryView = findViewById(R.id.text_journal_lot_summary);
+        chartOfAccountsView = findViewById(R.id.text_chart_of_accounts);
         journalEmptyStateView = findViewById(R.id.text_journal_empty_state);
         journalEntriesContainer = findViewById(R.id.layout_journal_entries);
     }
@@ -287,7 +292,7 @@ public class JournalActivity extends AppCompatActivity {
         LinearLayout.LayoutParams accountParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         accountParams.leftMargin = dp(12);
         accountView.setLayoutParams(accountParams);
-        accountView.setText(getString(R.string.journal_line_account, line.accountCode, line.accountName));
+        accountView.setText(getString(R.string.journal_line_account, line.accountCode, resolveAccountName(line)));
         accountView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
         topRow.addView(accountView);
 
@@ -338,6 +343,45 @@ public class JournalActivity extends AppCompatActivity {
             builder.append(getString(R.string.journal_line_provider, line.providerId));
         }
         return builder.toString();
+    }
+
+    private String resolveAccountName(JournalLineEntity line) {
+        AccountingAccount account = AccountingCatalog.findByCode(line.accountCode);
+        return account != null ? account.getName() : line.accountName;
+    }
+
+    private String buildChartOfAccountsText() {
+        StringBuilder builder = new StringBuilder();
+        for (AccountingAccount.Category category : AccountingAccount.Category.values()) {
+            appendCategorySection(builder, category);
+        }
+        return builder.toString();
+    }
+
+    private void appendCategorySection(StringBuilder builder, AccountingAccount.Category category) {
+        List<AccountingAccount> accounts = AccountingCatalog.getAccountsByCategory(category);
+        if (accounts.isEmpty()) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append("\n\n");
+        }
+        builder.append(getString(R.string.journal_chart_category, category.getDisplayName()));
+        for (AccountingAccount account : accounts) {
+            builder.append("\n");
+            builder.append(getString(
+                    R.string.journal_chart_account_line,
+                    account.getCode(),
+                    account.getName(),
+                    getNormalBalanceLabel(account.getNormalBalance())
+            ));
+        }
+    }
+
+    private String getNormalBalanceLabel(JournalLineType normalBalance) {
+        return normalBalance == JournalLineType.DEBIT
+                ? getString(R.string.journal_chart_normal_debit)
+                : getString(R.string.journal_chart_normal_credit);
     }
 
     private void appendSeparator(StringBuilder builder) {
