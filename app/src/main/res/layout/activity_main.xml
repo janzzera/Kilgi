@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:contentDescription="@string/menu_toolbar_content_description"
         android:minHeight="?attr/actionBarSize"
-        app:title="@string/app_name" />
+        app:title="@string/lot_screen_title" />
 
     <ScrollView
         android:id="@+id/content_scroll"
@@ -29,343 +29,161 @@
             android:orientation="vertical"
             android:padding="24dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/module_one_title"
-            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/section_lot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/lots_screen_heading"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+                android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/module_one_subtitle"
-            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+            <Button
+                android:id="@+id/button_create_lot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/button_new_lot"
+                android:textAllCaps="false" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/module_one_scope"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/text_batch_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/batch_status_idle"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:lineSpacingExtra="4dp"
-            android:text="@string/module_one_scope_items"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/lots_filter_title"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/section_lot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/batch_form_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/label_filter_month"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/batch_form_caption"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            <Spinner
+                android:id="@+id/spinner_filter_month"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-        <EditText
-            android:id="@+id/edit_provider_id"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="@string/hint_provider_id"
-            android:inputType="textCapCharacters"
-            tools:text="PROV-XYZ" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/label_filter_day"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <EditText
-            android:id="@+id/edit_provider_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_provider_name"
-            android:inputType="textCapWords"
-            tools:text="Provider XYZ" />
+            <Spinner
+                android:id="@+id/spinner_filter_day"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-        <EditText
-            android:id="@+id/edit_vegetable_type"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_vegetable_type"
-            android:inputType="textCapWords"
-            tools:text="Tomatoes" />
+            <Button
+                android:id="@+id/button_apply_lot_filter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/button_apply_filter"
+                android:textAllCaps="false" />
 
-        <EditText
-            android:id="@+id/edit_total_sacks"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_total_sacks"
-            android:inputType="number"
-            tools:text="4" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/lots_table_title"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/edit_raw_kilos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_raw_kilos"
-            android:inputType="numberDecimal"
-            tools:text="100" />
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fillViewport="true">
 
-        <EditText
-            android:id="@+id/edit_base_unit_price"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_base_unit_price"
-            android:inputType="numberDecimal"
-            tools:text="1.50" />
+                <TableLayout
+                    android:id="@+id/table_lots"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:stretchColumns="1,2,3,4,5" />
+            </HorizontalScrollView>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/label_purchase_payment_source"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            <TextView
+                android:id="@+id/text_lots_empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/no_lots_placeholder"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <Spinner
-            android:id="@+id/spinner_purchase_payment_source"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/lot_details_title"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/edit_standard_freight"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_standard_freight"
-            android:inputType="numberDecimal"
-            tools:text="20" />
+            <TextView
+                android:id="@+id/text_selected_lot_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/no_active_lot_placeholder"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/label_freight_payment_source"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
 
-        <Spinner
-            android:id="@+id/spinner_freight_payment_source"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/button_add_expense"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/button_open_add_expense"
+                    android:textAllCaps="false" />
 
-        <Button
-            android:id="@+id/button_create_lot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/button_create_lot"
-            android:textAllCaps="false" />
+                <Button
+                    android:id="@+id/button_log_spoilage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/button_open_log_spoilage"
+                    android:textAllCaps="false" />
+            </LinearLayout>
 
-        <TextView
-            android:id="@+id/text_batch_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/batch_status_idle"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            <TextView
+                android:id="@+id/text_expense_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/expense_status_idle"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/active_lot_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/text_spoilage_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/spoilage_status_idle"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/active_lot_caption"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <EditText
-            android:id="@+id/edit_selected_lot_id"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_selected_lot_id"
-            android:inputType="textNoSuggestions"
-            tools:text="sample-lot-id" />
-
-        <Button
-            android:id="@+id/button_refresh_lot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/button_refresh_lot"
-            android:textAllCaps="false" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/expense_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/expense_caption"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <EditText
-            android:id="@+id/edit_expense_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_expense_label"
-            android:inputType="textCapSentences"
-            tools:text="Market porter fee" />
-
-        <EditText
-            android:id="@+id/edit_expense_amount"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_expense_amount"
-            android:inputType="numberDecimal"
-            tools:text="10" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/label_expense_payment_source"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <Spinner
-            android:id="@+id/spinner_expense_payment_source"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/button_add_expense"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/button_add_expense"
-            android:textAllCaps="false" />
-
-        <TextView
-            android:id="@+id/text_expense_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/expense_status_idle"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/spoilage_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/spoilage_caption"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <EditText
-            android:id="@+id/edit_spoilage_kilos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_spoilage_kilos"
-            android:inputType="numberDecimal"
-            tools:text="15" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/label_loss_type"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <Spinner
-            android:id="@+id/spinner_loss_type"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/button_log_spoilage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/button_log_spoilage"
-            android:textAllCaps="false" />
-
-        <TextView
-            android:id="@+id/text_spoilage_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/spoilage_status_idle"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/results_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/text_active_lot_summary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:lineSpacingExtra="4dp"
-            android:minLines="12"
-            android:text="@string/no_active_lot_placeholder"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/all_lots_title"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/text_all_lots_summary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:lineSpacingExtra="4dp"
-            android:minLines="4"
-            android:text="@string/no_lots_placeholder"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/journal_screen_hint"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
+            <TableLayout
+                android:id="@+id/table_lot_details"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:stretchColumns="1" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

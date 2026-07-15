@@ -96,13 +96,12 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 
 `MainActivity` now serves as the dedicated **Lot** screen and supports:
 
-- a top menu with `Lot` and `Journal` entry points that can grow with future modules
-- baseline lot creation
-- selecting/loading a persisted lot by `lot_id`
-- appending dynamic batch expenses
-- logging normal or abnormal spoilage
-- viewing live lot valuation
-- viewing all saved lots
+- a cleaner lot-first layout with less instructional text
+- lot creation from a modal opened above the table section
+- a simple lot table with month and day-of-month filtering
+- tapping a lot row to view its details in a compact table
+- adding expenses or logging spoilage directly from the selected lot detail area
+- keeping the `Journal` screen available from the top menu for the selected lot
 
 `JournalActivity` now provides a dedicated **Journal** screen that:
 
@@ -120,7 +119,7 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 ## Next likely improvements
 
 - Add a dedicated providers master table
-- Add RecyclerView-based lot and journal screens
+- Add RecyclerView-based lot and journal screens if the dataset becomes large
 - Add Module 2 sale posting into `50100 COGS`
 - Add Room migrations once the schema starts evolving
 
