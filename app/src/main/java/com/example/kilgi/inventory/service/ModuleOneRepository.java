@@ -14,7 +14,9 @@ import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
 
 import java.util.Collections;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -166,6 +168,38 @@ public class ModuleOneRepository {
     public List<JournalEntryWithLines> getJournalEntries(String lotId) {
         List<JournalEntryWithLines> entries = journalDao.getEntriesForLot(lotId);
         return entries == null ? Collections.emptyList() : entries;
+    }
+
+    public List<JournalEntryWithLines> getJournalEntriesForPeriod(int monthOfYear, int year) {
+        if (monthOfYear < 1 || monthOfYear > 12) {
+            throw new IllegalArgumentException("Month must be between 1 and 12.");
+        }
+        if (year < 2000 || year > 9999) {
+            throw new IllegalArgumentException("Year must be a valid four-digit value.");
+        }
+
+        Calendar start = Calendar.getInstance();
+        start.clear();
+        start.set(year, monthOfYear - 1, 1, 0, 0, 0);
+
+        Calendar end = (Calendar) start.clone();
+        end.add(Calendar.MONTH, 1);
+
+        List<JournalEntryWithLines> entries = journalDao.getEntriesForPeriod(
+                start.getTimeInMillis(),
+                end.getTimeInMillis()
+        );
+        return entries == null ? Collections.emptyList() : entries;
+    }
+
+    public long getOldestJournalEntryTimestamp() {
+        Long timestamp = journalDao.getOldestEntryTimestamp();
+        return timestamp == null ? System.currentTimeMillis() : timestamp;
+    }
+
+    public long getLatestJournalEntryTimestamp() {
+        Long timestamp = journalDao.getLatestEntryTimestamp();
+        return timestamp == null ? System.currentTimeMillis() : timestamp;
     }
 
     private LotEntity requireLot(String lotId) {

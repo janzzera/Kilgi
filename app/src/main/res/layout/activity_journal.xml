@@ -43,15 +43,66 @@
                 android:text="@string/journal_screen_caption"
                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
-            <EditText
-                android:id="@+id/edit_selected_lot_id"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:autofillHints="username"
                 android:layout_marginTop="20dp"
-                android:hint="@string/hint_selected_lot_id"
-                android:inputType="textNoSuggestions"
-                tools:text="sample-lot-id" />
+                android:text="@string/journal_period_title"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/journal_period_caption"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/journal_label_month"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <Spinner
+                        android:id="@+id/spinner_journal_month"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/journal_label_year"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <Spinner
+                        android:id="@+id/spinner_journal_year"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </LinearLayout>
 
             <Button
                 android:id="@+id/button_load_journal"
@@ -70,12 +121,12 @@
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
             <TextView
-                android:id="@+id/text_journal_lot_summary"
+                android:id="@+id/text_journal_period_summary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:lineSpacingExtra="4dp"
-                android:text="@string/journal_lot_summary_placeholder"
+                android:text="@string/journal_period_summary_placeholder"
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
             <TextView
@@ -119,12 +170,18 @@
                 android:text="@string/no_journal_placeholder"
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-            <LinearLayout
-                android:id="@+id/layout_journal_entries"
+            <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:orientation="vertical" />
+                android:fillViewport="true">
+
+                <TableLayout
+                    android:id="@+id/table_journal_entries"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:stretchColumns="2,3,4,5,6" />
+            </HorizontalScrollView>
 
         </LinearLayout>
     </ScrollView>

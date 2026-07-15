@@ -4,12 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -21,19 +23,19 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.AccountingCatalog;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
+import com.example.kilgi.inventory.data.JournalEntryEntity;
 import com.example.kilgi.inventory.data.JournalLineEntity;
 import com.example.kilgi.inventory.data.JournalLineType;
 import com.example.kilgi.inventory.data.KilgiDatabase;
-import com.example.kilgi.inventory.data.LotWithDetails;
-import com.example.kilgi.inventory.input.InventoryInputParser;
-import com.example.kilgi.inventory.service.BatchValuationEngine;
-import com.example.kilgi.inventory.service.BatchValuationSnapshot;
+import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.service.ModuleOneRepository;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.card.MaterialCardView;
 
 import java.text.DateFormat;
+import java.text.DateFormatSymbols;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -49,15 +51,19 @@ public class JournalActivity extends AppCompatActivity {
 
     private MaterialToolbar topAppBar;
     private ScrollView contentScrollView;
-    private EditText selectedLotIdInput;
+    private Spinner monthSpinner;
+    private Spinner yearSpinner;
     private TextView journalStatusView;
-    private TextView journalLotSummaryView;
+    private TextView journalPeriodSummaryView;
     private TextView chartOfAccountsView;
     private TextView journalEmptyStateView;
-    private LinearLayout journalEntriesContainer;
+    private TableLayout journalEntriesTable;
 
     private ModuleOneRepository repository;
     private String initialLotId;
+    private ArrayAdapter<String> monthAdapter;
+    private ArrayAdapter<Integer> yearAdapter;
+    private final List<Integer> yearOptions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +81,7 @@ public class JournalActivity extends AppCompatActivity {
         bindViews();
         chartOfAccountsView.setText(buildChartOfAccountsText());
         setupTopAppBar();
+        setupPeriodSpinners();
         bindActions();
         loadInitialJournal();
     }
@@ -88,12 +95,13 @@ public class JournalActivity extends AppCompatActivity {
     private void bindViews() {
         topAppBar = findViewById(R.id.top_app_bar);
         contentScrollView = findViewById(R.id.content_scroll);
-        selectedLotIdInput = findViewById(R.id.edit_selected_lot_id);
+        monthSpinner = findViewById(R.id.spinner_journal_month);
+        yearSpinner = findViewById(R.id.spinner_journal_year);
         journalStatusView = findViewById(R.id.text_journal_status);
-        journalLotSummaryView = findViewById(R.id.text_journal_lot_summary);
+        journalPeriodSummaryView = findViewById(R.id.text_journal_period_summary);
         chartOfAccountsView = findViewById(R.id.text_chart_of_accounts);
         journalEmptyStateView = findViewById(R.id.text_journal_empty_state);
-        journalEntriesContainer = findViewById(R.id.layout_journal_entries);
+        journalEntriesTable = findViewById(R.id.table_journal_entries);
     }
 
     private void setupTopAppBar() {
@@ -102,9 +110,8 @@ public class JournalActivity extends AppCompatActivity {
         topAppBar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.menu_lot) {
                 Intent intent = new Intent(this, MainActivity.class);
-                String lotId = selectedLotIdInput.getText().toString().trim();
-                if (!lotId.isEmpty()) {
-                    intent.putExtra(EXTRA_LOT_ID, lotId);
+                if (!TextUtils.isEmpty(initialLotId)) {
+                    intent.putExtra(EXTRA_LOT_ID, initialLotId);
                 }
                 intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
@@ -118,215 +125,237 @@ public class JournalActivity extends AppCompatActivity {
         });
     }
 
+    private void setupPeriodSpinners() {
+        monthAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                buildMonthOptions()
+        );
+        monthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        monthSpinner.setAdapter(monthAdapter);
+
+        yearAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                yearOptions
+        );
+        yearAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        yearSpinner.setAdapter(yearAdapter);
+
+        Calendar calendar = Calendar.getInstance();
+        monthSpinner.setSelection(calendar.get(Calendar.MONTH));
+        updateYearOptions(calendar.get(Calendar.YEAR), calendar.get(Calendar.YEAR), calendar.get(Calendar.YEAR));
+    }
+
+    private List<String> buildMonthOptions() {
+        List<String> options = new ArrayList<>();
+        String[] monthNames = new DateFormatSymbols(Locale.getDefault()).getMonths();
+        for (int month = 0; month < 12; month++) {
+            options.add(monthNames[month]);
+        }
+        return options;
+    }
+
     private void bindActions() {
         Button loadJournalButton = findViewById(R.id.button_load_journal);
         loadJournalButton.setOnClickListener(v -> loadSelectedJournal());
     }
 
     private void loadInitialJournal() {
-        ioExecutor.execute(() -> refreshJournalOnWorker(initialLotId, null));
+        ioExecutor.execute(() -> {
+            PeriodSelection selection = resolveInitialPeriodSelection();
+            refreshJournalOnWorker(
+                    selection.monthOfYear,
+                    selection.year,
+                    getString(R.string.journal_status_loaded, formatPeriodLabel(selection.monthOfYear, selection.year)),
+                    selection.minYear,
+                    selection.maxYear
+            );
+        });
     }
 
     private void loadSelectedJournal() {
-        try {
-            String lotId = InventoryInputParser.requireText(selectedLotIdInput.getText().toString(), "Selected lot ID");
-            ioExecutor.execute(() -> refreshJournalOnWorker(
-                    lotId,
-                    getString(R.string.journal_status_loaded, lotId)
-            ));
-        } catch (IllegalArgumentException exception) {
-            journalStatusView.setText(exception.getMessage());
-        }
+        int monthOfYear = monthSpinner.getSelectedItemPosition() + 1;
+        Integer selectedYear = (Integer) yearSpinner.getSelectedItem();
+        int year = selectedYear == null ? Calendar.getInstance().get(Calendar.YEAR) : selectedYear;
+        ioExecutor.execute(() -> refreshJournalOnWorker(
+                monthOfYear,
+                year,
+                getString(R.string.journal_status_loaded, formatPeriodLabel(monthOfYear, year)),
+                getMinAvailableYear(),
+                getMaxAvailableYear()
+        ));
     }
 
-    private void refreshJournalOnWorker(String requestedLotId, String statusMessage) {
+    private PeriodSelection resolveInitialPeriodSelection() {
+        Calendar selectedCalendar = Calendar.getInstance();
+
+        if (!TextUtils.isEmpty(initialLotId)) {
+            try {
+                LotEntity lot = repository.getLotWithDetails(initialLotId).lot;
+                if (lot != null) {
+                    selectedCalendar.setTimeInMillis(lot.timestamp);
+                }
+            } catch (Exception ignored) {
+                // Fall back to the latest recorded period or the current date.
+            }
+        } else {
+            LotEntity latestLot = repository.getLatestLot();
+            if (latestLot != null) {
+                selectedCalendar.setTimeInMillis(latestLot.timestamp);
+            }
+        }
+
+        long oldestTimestamp = repository.getOldestJournalEntryTimestamp();
+        long latestTimestamp = repository.getLatestJournalEntryTimestamp();
+        Calendar oldestCalendar = Calendar.getInstance();
+        oldestCalendar.setTimeInMillis(oldestTimestamp);
+        Calendar latestCalendar = Calendar.getInstance();
+        latestCalendar.setTimeInMillis(latestTimestamp);
+
+        int selectedYear = selectedCalendar.get(Calendar.YEAR);
+        int minYear = Math.min(oldestCalendar.get(Calendar.YEAR), selectedYear);
+        int maxYear = Math.max(latestCalendar.get(Calendar.YEAR), selectedYear);
+        return new PeriodSelection(
+                selectedCalendar.get(Calendar.MONTH) + 1,
+                selectedYear,
+                minYear,
+                maxYear
+        );
+    }
+
+    private void refreshJournalOnWorker(int monthOfYear, int year, String statusMessage, int minYear, int maxYear) {
         try {
-            String effectiveLotId = requestedLotId;
-            if (TextUtils.isEmpty(effectiveLotId)) {
-                if (repository.getLatestLot() != null) {
-                    effectiveLotId = repository.getLatestLot().lotId;
-                }
-            }
+            List<JournalEntryWithLines> entries = repository.getJournalEntriesForPeriod(monthOfYear, year);
+            List<JournalRow> rows = buildJournalRows(entries);
+            String periodLabel = formatPeriodLabel(monthOfYear, year);
+            String summary = getString(R.string.journal_period_summary, periodLabel, entries.size(), rows.size());
 
-            String journalLotSummary = getString(R.string.journal_lot_summary_placeholder);
-            List<JournalEntryWithLines> entries = null;
-            if (!TextUtils.isEmpty(effectiveLotId)) {
-                LotWithDetails lotWithDetails = repository.getLotWithDetails(effectiveLotId);
-                BatchValuationSnapshot snapshot = BatchValuationEngine.calculate(
-                        lotWithDetails.lot,
-                        lotWithDetails.expenses,
-                        lotWithDetails.spoilageLogs
-                );
-                journalLotSummary = buildJournalLotSummary(lotWithDetails, snapshot);
-                entries = repository.getJournalEntries(effectiveLotId);
-            }
-
-            String finalEffectiveLotId = effectiveLotId;
-            String finalJournalLotSummary = journalLotSummary;
-            List<JournalEntryWithLines> finalEntries = entries;
             runOnUiThread(() -> {
-                if (!TextUtils.isEmpty(finalEffectiveLotId)) {
-                    selectedLotIdInput.setText(finalEffectiveLotId);
-                }
+                updateYearOptions(minYear, maxYear, year);
+                monthSpinner.setSelection(monthOfYear - 1);
                 journalStatusView.setText(statusMessage == null
                         ? getString(R.string.journal_status_idle)
                         : statusMessage);
-                journalLotSummaryView.setText(finalJournalLotSummary);
-                renderJournalEntries(finalEntries);
+                journalPeriodSummaryView.setText(summary);
+                renderJournalTable(rows);
             });
         } catch (Exception exception) {
             runOnUiThread(() -> {
                 journalStatusView.setText(exception.getMessage());
-                journalLotSummaryView.setText(R.string.journal_lot_summary_placeholder);
-                renderJournalEntries(null);
+                journalPeriodSummaryView.setText(R.string.journal_period_summary_placeholder);
+                renderJournalTable(null);
             });
         }
     }
 
-    private void renderJournalEntries(List<JournalEntryWithLines> entries) {
-        journalEntriesContainer.removeAllViews();
-        boolean hasEntries = entries != null && !entries.isEmpty();
+    private void renderJournalTable(List<JournalRow> rows) {
+        journalEntriesTable.removeAllViews();
+        journalEntriesTable.addView(createJournalHeaderRow());
+        boolean hasEntries = rows != null && !rows.isEmpty();
         journalEmptyStateView.setVisibility(hasEntries ? View.GONE : View.VISIBLE);
         if (!hasEntries) {
             return;
         }
 
-        for (int index = 0; index < entries.size(); index++) {
-            journalEntriesContainer.addView(createJournalEntryCard(entries.get(index), index));
+        for (int index = 0; index < rows.size(); index++) {
+            journalEntriesTable.addView(createJournalDataRow(rows.get(index), index));
         }
     }
 
-    private View createJournalEntryCard(JournalEntryWithLines entry, int index) {
-        MaterialCardView cardView = new MaterialCardView(this);
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        if (index > 0) {
-            cardParams.topMargin = dp(12);
-        }
-        cardView.setLayoutParams(cardParams);
-        cardView.setCardElevation(dp(1));
-        cardView.setRadius(dp(16));
-        cardView.setUseCompatPadding(true);
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(16), dp(16), dp(16), dp(16));
-        cardView.addView(content);
-
-        TextView titleView = new TextView(this);
-        titleView.setText(entry.entry.eventType);
-        titleView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleMedium);
-        titleView.setTypeface(titleView.getTypeface(), android.graphics.Typeface.BOLD);
-        content.addView(titleView);
-
-        TextView descriptionView = new TextView(this);
-        LinearLayout.LayoutParams descriptionParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        descriptionParams.topMargin = dp(4);
-        descriptionView.setLayoutParams(descriptionParams);
-        descriptionView.setText(entry.entry.description);
-        descriptionView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
-        content.addView(descriptionView);
-
-        TextView metaView = new TextView(this);
-        LinearLayout.LayoutParams metaParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        metaParams.topMargin = dp(6);
-        metaView.setLayoutParams(metaParams);
-        metaView.setText(getString(
-                R.string.journal_entry_meta,
-                abbreviateLotId(entry.entry.lotId),
-                dateTimeFormat.format(entry.entry.timestamp)
-        ));
-        metaView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall);
-        content.addView(metaView);
-
-        LinearLayout linesContainer = new LinearLayout(this);
-        LinearLayout.LayoutParams linesParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        linesParams.topMargin = dp(12);
-        linesContainer.setLayoutParams(linesParams);
-        linesContainer.setOrientation(LinearLayout.VERTICAL);
-        content.addView(linesContainer);
-
-        for (int lineIndex = 0; lineIndex < entry.lines.size(); lineIndex++) {
-            linesContainer.addView(createJournalLineView(entry.lines.get(lineIndex), lineIndex));
-        }
-
-        return cardView;
+    private TableRow createJournalHeaderRow() {
+        TableRow row = new TableRow(this);
+        row.setBackgroundColor(0xFFE0E0E0);
+        row.addView(createJournalCell(getString(R.string.journal_table_header_date), true));
+        row.addView(createJournalCell(getString(R.string.journal_table_header_lot), true));
+        row.addView(createJournalCell(getString(R.string.journal_table_header_event), true));
+        row.addView(createJournalCell(getString(R.string.journal_table_header_account), true));
+        row.addView(createJournalCell(getString(R.string.journal_table_header_debit), true));
+        row.addView(createJournalCell(getString(R.string.journal_table_header_credit), true));
+        row.addView(createJournalCell(getString(R.string.journal_table_header_details), true));
+        return row;
     }
 
-    private View createJournalLineView(JournalLineEntity line, int lineIndex) {
-        LinearLayout lineLayout = new LinearLayout(this);
-        lineLayout.setOrientation(LinearLayout.VERTICAL);
-        if (lineIndex > 0) {
-            LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            lineParams.topMargin = dp(10);
-            lineLayout.setLayoutParams(lineParams);
+    private TableRow createJournalDataRow(JournalRow rowData, int index) {
+        TableRow row = new TableRow(this);
+        row.setBackgroundColor(index % 2 == 0 ? 0xFFF8F8F8 : 0xFFFFFFFF);
+        row.addView(createJournalCell(rowData.dateTimeLabel, false));
+        row.addView(createJournalCell(rowData.lotLabel, false));
+        row.addView(createJournalCell(rowData.eventLabel, false));
+        row.addView(createJournalCell(rowData.accountLabel, false));
+        row.addView(createJournalCell(rowData.debitLabel, false));
+        row.addView(createJournalCell(rowData.creditLabel, false));
+        row.addView(createJournalCell(rowData.detailsLabel, false));
+        return row;
+    }
+
+    private TextView createJournalCell(String text, boolean header) {
+        TextView view = new TextView(this);
+        TableRow.LayoutParams params = new TableRow.LayoutParams(
+                TableRow.LayoutParams.WRAP_CONTENT,
+                TableRow.LayoutParams.WRAP_CONTENT
+        );
+        view.setLayoutParams(params);
+        view.setPadding(dp(12), dp(10), dp(12), dp(10));
+        view.setText(text);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, header ? 14 : 13);
+        if (header) {
+            view.setTypeface(view.getTypeface(), android.graphics.Typeface.BOLD);
         }
+        return view;
+    }
 
-        LinearLayout topRow = new LinearLayout(this);
-        topRow.setOrientation(LinearLayout.HORIZONTAL);
-        topRow.setGravity(Gravity.CENTER_VERTICAL);
-        lineLayout.addView(topRow);
+    private List<JournalRow> buildJournalRows(List<JournalEntryWithLines> entries) {
+        List<JournalRow> rows = new ArrayList<>();
+        if (entries == null) {
+            return rows;
+        }
+        for (int entryIndex = 0; entryIndex < entries.size(); entryIndex++) {
+            JournalEntryWithLines entryWithLines = entries.get(entryIndex);
+            JournalEntryEntity entry = entryWithLines.entry;
+            if (entry == null) {
+                continue;
+            }
+            if (entryWithLines.lines == null || entryWithLines.lines.isEmpty()) {
+                rows.add(new JournalRow(
+                        dateTimeFormat.format(entry.timestamp),
+                        abbreviateLotId(entry.lotId),
+                        entry.eventType,
+                        "-",
+                        "-",
+                        "-",
+                        entry.description
+                ));
+                continue;
+            }
+            for (int lineIndex = 0; lineIndex < entryWithLines.lines.size(); lineIndex++) {
+                JournalLineEntity line = entryWithLines.lines.get(lineIndex);
+                boolean isDebit = isDebitLine(line);
+                rows.add(new JournalRow(
+                        dateTimeFormat.format(entry.timestamp),
+                        abbreviateLotId(entry.lotId),
+                        entry.eventType,
+                        getString(R.string.journal_line_account, line.accountCode, resolveAccountName(line)),
+                        isDebit ? currencyFormat.format(line.amount) : "-",
+                        isDebit ? "-" : currencyFormat.format(line.amount),
+                        buildRowDetails(entry, line)
+                ));
+            }
+        }
+        return rows;
+    }
 
-        TextView sideView = new TextView(this);
-        sideView.setText(JournalLineType.valueOf(line.lineType) == JournalLineType.DEBIT ? "DR" : "CR");
-        sideView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge);
-        sideView.setPadding(dp(10), dp(4), dp(10), dp(4));
-        sideView.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
-        topRow.addView(sideView);
-
-        TextView accountView = new TextView(this);
-        LinearLayout.LayoutParams accountParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        accountParams.leftMargin = dp(12);
-        accountView.setLayoutParams(accountParams);
-        accountView.setText(getString(R.string.journal_line_account, line.accountCode, resolveAccountName(line)));
-        accountView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
-        topRow.addView(accountView);
-
-        TextView amountView = new TextView(this);
-        amountView.setText(currencyFormat.format(line.amount));
-        amountView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall);
-        topRow.addView(amountView);
-
+    private String buildRowDetails(JournalEntryEntity entry, JournalLineEntity line) {
+        StringBuilder builder = new StringBuilder();
+        if (!TextUtils.isEmpty(entry.description)) {
+            builder.append(entry.description.trim());
+        }
         String lineDetails = buildLineDetails(line);
-        if (!lineDetails.isEmpty()) {
-            TextView detailsView = new TextView(this);
-            LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            detailsParams.topMargin = dp(4);
-            detailsView.setLayoutParams(detailsParams);
-            detailsView.setText(lineDetails);
-            detailsView.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall);
-            lineLayout.addView(detailsView);
+        if (!TextUtils.isEmpty(lineDetails)) {
+            appendSeparator(builder);
+            builder.append(lineDetails);
         }
-
-        return lineLayout;
-    }
-
-    private String buildJournalLotSummary(LotWithDetails lotWithDetails, BatchValuationSnapshot snapshot) {
-        return getString(
-                R.string.journal_lot_summary,
-                lotWithDetails.lot.vegetableType,
-                lotWithDetails.lot.providerName,
-                abbreviateLotId(lotWithDetails.lot.lotId),
-                formatWeight(snapshot.getNetUsableKilograms()),
-                currencyFormat.format(snapshot.getTotalCapitalizedCost())
-        );
+        return builder.toString();
     }
 
     private String buildLineDetails(JournalLineEntity line) {
@@ -343,6 +372,14 @@ public class JournalActivity extends AppCompatActivity {
             builder.append(getString(R.string.journal_line_provider, line.providerId));
         }
         return builder.toString();
+    }
+
+    private boolean isDebitLine(JournalLineEntity line) {
+        try {
+            return JournalLineType.valueOf(line.lineType) == JournalLineType.DEBIT;
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            return false;
+        }
     }
 
     private String resolveAccountName(JournalLineEntity line) {
@@ -390,15 +427,46 @@ public class JournalActivity extends AppCompatActivity {
         }
     }
 
+    private void updateYearOptions(int minYear, int maxYear, int selectedYear) {
+        int safeMinYear = Math.min(minYear, selectedYear);
+        int safeMaxYear = Math.max(maxYear, selectedYear);
+
+        List<Integer> updatedYears = new ArrayList<>();
+        for (int year = safeMaxYear; year >= safeMinYear; year--) {
+            updatedYears.add(year);
+        }
+
+        if (!updatedYears.equals(yearOptions)) {
+            yearOptions.clear();
+            yearOptions.addAll(updatedYears);
+            yearAdapter.notifyDataSetChanged();
+        }
+
+        int selectedIndex = yearOptions.indexOf(selectedYear);
+        if (selectedIndex >= 0) {
+            yearSpinner.setSelection(selectedIndex);
+        }
+    }
+
+    private int getMinAvailableYear() {
+        return yearOptions.isEmpty() ? Calendar.getInstance().get(Calendar.YEAR) : yearOptions.get(yearOptions.size() - 1);
+    }
+
+    private int getMaxAvailableYear() {
+        return yearOptions.isEmpty() ? Calendar.getInstance().get(Calendar.YEAR) : yearOptions.get(0);
+    }
+
+    private String formatPeriodLabel(int monthOfYear, int year) {
+        String[] monthNames = new DateFormatSymbols(Locale.getDefault()).getMonths();
+        String monthLabel = monthNames[Math.max(0, Math.min(11, monthOfYear - 1))];
+        return monthLabel + " " + year;
+    }
+
     private String abbreviateLotId(String lotId) {
         if (TextUtils.isEmpty(lotId)) {
             return "-";
         }
         return lotId.length() <= 8 ? lotId : lotId.substring(0, 8);
-    }
-
-    private String formatWeight(double kilos) {
-        return String.format(Locale.US, "%.2f kg", kilos);
     }
 
     private int dp(int value) {
@@ -407,6 +475,48 @@ public class JournalActivity extends AppCompatActivity {
                 value,
                 getResources().getDisplayMetrics()
         );
+    }
+
+    private static final class PeriodSelection {
+        private final int monthOfYear;
+        private final int year;
+        private final int minYear;
+        private final int maxYear;
+
+        private PeriodSelection(int monthOfYear, int year, int minYear, int maxYear) {
+            this.monthOfYear = monthOfYear;
+            this.year = year;
+            this.minYear = minYear;
+            this.maxYear = maxYear;
+        }
+    }
+
+    private static final class JournalRow {
+        private final String dateTimeLabel;
+        private final String lotLabel;
+        private final String eventLabel;
+        private final String accountLabel;
+        private final String debitLabel;
+        private final String creditLabel;
+        private final String detailsLabel;
+
+        private JournalRow(
+                String dateTimeLabel,
+                String lotLabel,
+                String eventLabel,
+                String accountLabel,
+                String debitLabel,
+                String creditLabel,
+                String detailsLabel
+        ) {
+            this.dateTimeLabel = dateTimeLabel;
+            this.lotLabel = lotLabel;
+            this.eventLabel = eventLabel;
+            this.accountLabel = accountLabel;
+            this.debitLabel = debitLabel;
+            this.creditLabel = creditLabel;
+            this.detailsLabel = detailsLabel;
+        }
     }
 }
 
