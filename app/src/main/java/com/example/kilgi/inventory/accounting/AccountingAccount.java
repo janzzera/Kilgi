@@ -64,4 +64,10 @@ public final class AccountingAccount {
     public JournalLineType getNormalBalance() {
         return normalBalance;
     }
+
+    @Override
+    @NonNull
+    public String toString() {
+        return code + " - " + name;
+    }
 }

@@ -22,6 +22,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.kilgi.inventory.accounting.AccountingAccount;
+import com.example.kilgi.inventory.accounting.AccountingCatalog;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.LossType;
 import com.example.kilgi.inventory.data.LotEntity;
@@ -310,11 +312,13 @@ public class MainActivity extends AppCompatActivity {
 
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_expense, null, false);
         TextView selectedLotView = dialogView.findViewById(R.id.text_selected_lot);
-        EditText expenseLabelInput = dialogView.findViewById(R.id.edit_expense_label);
+        Spinner expenseAccountSpinner = dialogView.findViewById(R.id.spinner_expense_account);
         EditText expenseAmountInput = dialogView.findViewById(R.id.edit_expense_amount);
         Spinner paymentSourceSpinner = dialogView.findViewById(R.id.spinner_expense_payment_source);
 
         selectedLotView.setText(getString(R.string.dialog_selected_lot, abbreviateLotId(currentSelectedLotId), currentSelectedLotId));
+        expenseAccountSpinner.setAdapter(buildLotExpenseAccountAdapter());
+        expenseAccountSpinner.setSelection(getDefaultLotExpenseAccountIndex());
         paymentSourceSpinner.setAdapter(buildPaymentSourceAdapter());
         paymentSourceSpinner.setSelection(PaymentSource.CASH.ordinal());
 
@@ -327,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             try {
-                String expenseLabel = InventoryInputParser.requireText(expenseLabelInput.getText().toString(), "Expense label");
+                AccountingAccount expenseAccount = (AccountingAccount) expenseAccountSpinner.getSelectedItem();
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(expenseAmountInput.getText().toString(), "Expense amount");
                 PaymentSource paymentSource = (PaymentSource) paymentSourceSpinner.getSelectedItem();
                 String lotId = currentSelectedLotId;
@@ -337,11 +341,11 @@ public class MainActivity extends AppCompatActivity {
                 dialog.dismiss();
                 ioExecutor.execute(() -> {
                     try {
-                        repository.addExpense(lotId, expenseLabel, amount, paymentSource);
+                        repository.addExpense(lotId, expenseAccount, amount, paymentSource);
                         refreshDashboardOnWorker(
                                 lotId,
                                 null,
-                                getString(R.string.expense_added_message, expenseLabel),
+                                getString(R.string.expense_added_message, expenseAccount == null ? "" : expenseAccount.getName()),
                                 null,
                                 monthFilter,
                                 dayFilter
@@ -421,6 +425,26 @@ public class MainActivity extends AppCompatActivity {
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         return adapter;
+    }
+
+    private ArrayAdapter<AccountingAccount> buildLotExpenseAccountAdapter() {
+        ArrayAdapter<AccountingAccount> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                AccountingCatalog.getLotExpenseAccounts()
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        return adapter;
+    }
+
+    private int getDefaultLotExpenseAccountIndex() {
+        List<AccountingAccount> accounts = AccountingCatalog.getLotExpenseAccounts();
+        for (int index = 0; index < accounts.size(); index++) {
+            if (AccountingCatalog.FREIGHT_IN_CODE.equals(accounts.get(index).getCode())) {
+                return index;
+            }
+        }
+        return 0;
     }
 
     private ArrayAdapter<LossType> buildLossTypeAdapter() {

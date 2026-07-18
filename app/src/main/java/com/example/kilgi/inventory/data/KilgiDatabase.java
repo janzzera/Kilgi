@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase;
                 JournalEntryEntity.class,
                 JournalLineEntity.class
         },
-        version = 1,
+        version = 2,
         exportSchema = false
 )
 public abstract class KilgiDatabase extends RoomDatabase {

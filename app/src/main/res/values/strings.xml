@@ -39,7 +39,7 @@
     <string name="dialog_save">Save</string>
     <string name="dialog_selected_lot">Lot %1$s • %2$s</string>
     <string name="expense_status_idle">No expense update yet.</string>
-    <string name="hint_expense_label">Expense label</string>
+    <string name="label_expense_account">Expense account</string>
     <string name="hint_expense_amount">Expense amount</string>
     <string name="label_expense_payment_source">Expense payment source</string>
     <string name="expense_added_message">Expense "%1$s" added.</string>

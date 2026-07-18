@@ -12,13 +12,18 @@
         android:layout_height="wrap_content"
         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-    <EditText
-        android:id="@+id/edit_expense_label"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="@string/hint_expense_label"
-        android:inputType="textCapSentences" />
+        android:text="@string/label_expense_account" />
+
+    <Spinner
+        android:id="@+id/spinner_expense_account"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:minHeight="48dp" />
 
     <EditText
         android:id="@+id/edit_expense_amount"
@@ -39,4 +44,5 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 </LinearLayout>
+
 

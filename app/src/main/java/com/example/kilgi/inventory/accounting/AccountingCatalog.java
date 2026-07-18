@@ -172,8 +172,21 @@ public final class AccountingCatalog {
     public static final String ACCOUNTS_PAYABLE_NAME = ACCOUNTS_PAYABLE.getName();
     public static final String COGS_CODE = COGS.getCode();
     public static final String COGS_NAME = COGS.getName();
+    public static final String FREIGHT_IN_CODE = FREIGHT_IN.getCode();
+    public static final String FREIGHT_IN_NAME = FREIGHT_IN.getName();
     public static final String LOSS_CODE = INVENTORY_LOSS.getCode();
     public static final String LOSS_NAME = INVENTORY_LOSS.getName();
+
+    private static final List<AccountingAccount> LOT_EXPENSE_ACCOUNTS = Collections.unmodifiableList(Arrays.asList(
+            FREIGHT_IN,
+            TAXES_AND_LICENSES_EXPENSE,
+            FREIGHT_OUT,
+            RENT_EXPENSE,
+            UTILITIES_EXPENSE,
+            ADVERTISING_EXPENSE,
+            SALARIES_EXPENSE,
+            SUPPLIES_EXPENSE
+    ));
 
     private static final List<AccountingAccount> ALL_ACCOUNTS = Collections.unmodifiableList(Arrays.asList(
             CASH_IN_BANK,
@@ -221,6 +234,11 @@ public final class AccountingCatalog {
             }
         }
         return Collections.unmodifiableList(matches);
+    }
+
+    @NonNull
+    public static List<AccountingAccount> getLotExpenseAccounts() {
+        return LOT_EXPENSE_ACCOUNTS;
     }
 
     @Nullable

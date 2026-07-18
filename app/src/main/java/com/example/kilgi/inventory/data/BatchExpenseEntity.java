@@ -24,7 +24,9 @@ public class BatchExpenseEntity {
     @NonNull
     public final String lotId;
     @NonNull
-    public final String expenseLabel;
+    public final String expenseAccountCode;
+    @NonNull
+    public final String expenseAccountName;
     public final double amount;
     @NonNull
     public final String paymentSource;
@@ -33,14 +35,16 @@ public class BatchExpenseEntity {
     public BatchExpenseEntity(
             @NonNull String expenseId,
             @NonNull String lotId,
-            @NonNull String expenseLabel,
+            @NonNull String expenseAccountCode,
+            @NonNull String expenseAccountName,
             double amount,
             @NonNull String paymentSource,
             long timestamp
     ) {
         this.expenseId = expenseId;
         this.lotId = lotId;
-        this.expenseLabel = expenseLabel;
+        this.expenseAccountCode = expenseAccountCode;
+        this.expenseAccountName = expenseAccountName;
         this.amount = amount;
         this.paymentSource = paymentSource;
         this.timestamp = timestamp;

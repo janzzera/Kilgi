@@ -22,7 +22,6 @@ public final class JournalEntryFactory {
 
     public static LedgerEntryDraft buildInitialLotEntry(LotEntity lot) {
         double purchaseAmount = lot.rawKilosReceived * lot.baseUnitPrice;
-        double totalCapitalized = purchaseAmount + lot.standardFreight;
         String description = "Initial lot creation for " + lot.vegetableType + " (" + lot.lotId + ")";
         JournalEntryEntity entry = new JournalEntryEntity(
                 UUID.randomUUID().toString(),
@@ -39,10 +38,10 @@ public final class JournalEntryFactory {
                 AccountingCatalog.INVENTORY_CODE,
                 AccountingCatalog.INVENTORY_NAME,
                 JournalLineType.DEBIT,
-                totalCapitalized,
+                purchaseAmount,
                 lot.providerId,
                 null,
-                lot.vegetableType + " batch capitalization"
+                lot.vegetableType + " purchase capitalization"
         ));
         lines.add(paymentLine(
                 entry.entryId,
@@ -53,6 +52,17 @@ public final class JournalEntryFactory {
                 "Provider purchase value"
         ));
         if (lot.standardFreight > 0) {
+            lines.add(line(
+                    entry.entryId,
+                    lot.lotId,
+                    AccountingCatalog.FREIGHT_IN_CODE,
+                    AccountingCatalog.FREIGHT_IN_NAME,
+                    JournalLineType.DEBIT,
+                    lot.standardFreight,
+                    lot.providerId,
+                    null,
+                    "Freight-in capitalization"
+            ));
             lines.add(paymentLine(
                     entry.entryId,
                     lot.lotId,
@@ -66,7 +76,7 @@ public final class JournalEntryFactory {
     }
 
     public static LedgerEntryDraft buildExpenseEntry(LotEntity lot, BatchExpenseEntity expense) {
-        String description = expense.expenseLabel + " added to lot " + lot.lotId;
+        String description = expense.expenseAccountName + " added to lot " + lot.lotId;
         JournalEntryEntity entry = new JournalEntryEntity(
                 UUID.randomUUID().toString(),
                 lot.lotId,
@@ -79,13 +89,13 @@ public final class JournalEntryFactory {
         lines.add(line(
                 entry.entryId,
                 lot.lotId,
-                AccountingCatalog.INVENTORY_CODE,
-                AccountingCatalog.INVENTORY_NAME,
+                expense.expenseAccountCode,
+                expense.expenseAccountName,
                 JournalLineType.DEBIT,
                 expense.amount,
                 lot.providerId,
                 expense.paymentSource,
-                expense.expenseLabel
+                expense.expenseAccountName
         ));
         lines.add(paymentLine(
                 entry.entryId,
@@ -93,7 +103,7 @@ public final class JournalEntryFactory {
                 PaymentSource.fromStoredValue(expense.paymentSource),
                 expense.amount,
                 lot.providerId,
-                expense.expenseLabel
+                expense.expenseAccountName
         ));
         return new LedgerEntryDraft(entry, lines);
     }

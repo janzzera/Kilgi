@@ -1,5 +1,6 @@
 package com.example.kilgi.inventory.service;
 
+import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.JournalEntryFactory;
 import com.example.kilgi.inventory.accounting.LedgerEntryDraft;
 import com.example.kilgi.inventory.data.BatchExpenseEntity;
@@ -16,7 +17,6 @@ import com.example.kilgi.inventory.data.SpoilageLogEntity;
 import java.util.Collections;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -86,9 +86,11 @@ public class ModuleOneRepository {
         return lot;
     }
 
-    public BatchExpenseEntity addExpense(String lotId, String expenseLabel, double amount, PaymentSource paymentSource) {
+    public BatchExpenseEntity addExpense(String lotId, AccountingAccount expenseAccount, double amount, PaymentSource paymentSource) {
         LotEntity lot = requireLot(lotId);
-        validateRequiredText(expenseLabel, "Expense label");
+        if (expenseAccount == null) {
+            throw new IllegalArgumentException("Expense account is required.");
+        }
         if (amount <= 0) {
             throw new IllegalArgumentException("Expense amount must be greater than zero.");
         }
@@ -99,7 +101,8 @@ public class ModuleOneRepository {
         BatchExpenseEntity expense = new BatchExpenseEntity(
                 UUID.randomUUID().toString(),
                 lot.lotId,
-                expenseLabel.trim(),
+                expenseAccount.getCode(),
+                expenseAccount.getName(),
                 amount,
                 paymentSource.getStoredValue(),
                 System.currentTimeMillis()
