@@ -319,7 +319,7 @@ public class JournalActivity extends AppCompatActivity {
             if (entryWithLines.lines == null || entryWithLines.lines.isEmpty()) {
                 rows.add(new JournalRow(
                         dateTimeFormat.format(entry.timestamp),
-                        abbreviateLotId(entry.lotId),
+                        resolveEntryReferenceLabel(entry),
                         entry.eventType,
                         "-",
                         "-",
@@ -333,7 +333,7 @@ public class JournalActivity extends AppCompatActivity {
                 boolean isDebit = isDebitLine(line);
                 rows.add(new JournalRow(
                         dateTimeFormat.format(entry.timestamp),
-                        abbreviateLotId(entry.lotId),
+                        resolveEntryReferenceLabel(entry),
                         entry.eventType,
                         getString(R.string.journal_line_account, line.accountCode, resolveAccountName(line)),
                         isDebit ? currencyFormat.format(line.amount) : "-",
@@ -371,7 +371,24 @@ public class JournalActivity extends AppCompatActivity {
             appendSeparator(builder);
             builder.append(getString(R.string.journal_line_provider, line.providerId));
         }
+        if (!TextUtils.isEmpty(line.customerId)) {
+            appendSeparator(builder);
+            builder.append(getString(R.string.journal_line_customer, line.customerId));
+        }
         return builder.toString();
+    }
+
+    private String resolveEntryReferenceLabel(JournalEntryEntity entry) {
+        if (entry == null) {
+            return "-";
+        }
+        if (!TextUtils.isEmpty(entry.lotId)) {
+            return abbreviateLotId(entry.lotId);
+        }
+        if (!TextUtils.isEmpty(entry.referenceId)) {
+            return entry.referenceType + " • " + abbreviateLotId(entry.referenceId);
+        }
+        return "-";
     }
 
     private boolean isDebitLine(JournalLineEntity line) {

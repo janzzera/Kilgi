@@ -148,6 +148,7 @@ public class ModuleOneAccountingTest {
     private LotEntity createLot() {
         return new LotEntity(
                 "lot-1",
+                ModuleOneRepository.LOCAL_USER_ID,
                 "PROV-XYZ",
                 "Provider XYZ",
                 "Tomatoes",

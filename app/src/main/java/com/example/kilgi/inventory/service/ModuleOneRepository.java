@@ -4,6 +4,11 @@ import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.JournalEntryFactory;
 import com.example.kilgi.inventory.accounting.LedgerEntryDraft;
 import com.example.kilgi.inventory.data.BatchExpenseEntity;
+import com.example.kilgi.inventory.data.CustomerDao;
+import com.example.kilgi.inventory.data.CustomerEntity;
+import com.example.kilgi.inventory.data.CustomerLedgerSummary;
+import com.example.kilgi.inventory.data.CustomerPaymentAllocationEntity;
+import com.example.kilgi.inventory.data.CustomerPaymentEntity;
 import com.example.kilgi.inventory.data.JournalDao;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.KilgiDatabase;
@@ -11,35 +16,95 @@ import com.example.kilgi.inventory.data.LossType;
 import com.example.kilgi.inventory.data.LotDao;
 import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.data.LotWithDetails;
+import com.example.kilgi.inventory.data.OpenCustomerInvoice;
+import com.example.kilgi.inventory.data.OpenProviderLotPayable;
 import com.example.kilgi.inventory.data.PaymentSource;
+import com.example.kilgi.inventory.data.ProviderDao;
+import com.example.kilgi.inventory.data.ProviderEntity;
+import com.example.kilgi.inventory.data.ProviderLedgerSummary;
+import com.example.kilgi.inventory.data.ProviderPaymentAllocationEntity;
+import com.example.kilgi.inventory.data.ProviderPaymentEntity;
+import com.example.kilgi.inventory.data.RetailSaleEntity;
+import com.example.kilgi.inventory.data.SalesDao;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
+import com.example.kilgi.inventory.data.UserDao;
+import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.data.WholesaleInvoiceEntity;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Coordinates Room persistence, costing, and automated ledger posting.
+ * Coordinates Room persistence, inventory costing, party masters, and automated journal posting.
  */
 public class ModuleOneRepository {
 
+    public static final String LOCAL_USER_ID = "local-owner";
+
     private final KilgiDatabase database;
+    private final UserDao userDao;
+    private final ProviderDao providerDao;
+    private final CustomerDao customerDao;
     private final LotDao lotDao;
     private final JournalDao journalDao;
+    private final SalesDao salesDao;
 
     public ModuleOneRepository(KilgiDatabase database) {
         if (database == null) {
             throw new IllegalArgumentException("database cannot be null.");
         }
         this.database = database;
+        this.userDao = database.userDao();
+        this.providerDao = database.providerDao();
+        this.customerDao = database.customerDao();
         this.lotDao = database.lotDao();
         this.journalDao = database.journalDao();
+        this.salesDao = database.salesDao();
+    }
+
+    public ProviderEntity createProvider(String displayName, String contactNumber, String address, String notes) {
+        validateRequiredText(displayName, "Provider name");
+        String userId = ensureLocalUserExists();
+        long now = System.currentTimeMillis();
+        ProviderEntity provider = new ProviderEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                displayName.trim(),
+                normalizeOptionalText(contactNumber),
+                normalizeOptionalText(address),
+                normalizeOptionalText(notes),
+                1,
+                now,
+                now
+        );
+        providerDao.insert(provider);
+        return provider;
+    }
+
+    public CustomerEntity createCustomer(String displayName, String contactNumber, String address, String notes) {
+        validateRequiredText(displayName, "Customer name");
+        String userId = ensureLocalUserExists();
+        long now = System.currentTimeMillis();
+        CustomerEntity customer = new CustomerEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                displayName.trim(),
+                normalizeOptionalText(contactNumber),
+                normalizeOptionalText(address),
+                normalizeOptionalText(notes),
+                1,
+                now,
+                now
+        );
+        customerDao.insert(customer);
+        return customer;
     }
 
     public LotEntity createLot(
             String providerId,
-            String providerName,
             String vegetableType,
             int totalSacksPurchased,
             double rawKilosReceived,
@@ -48,8 +113,8 @@ public class ModuleOneRepository {
             double standardFreight,
             PaymentSource freightPaymentSource
     ) {
-        validateRequiredText(providerId, "Provider ID");
-        validateRequiredText(providerName, "Provider name");
+        String userId = ensureLocalUserExists();
+        ProviderEntity provider = requireProvider(providerId);
         validateRequiredText(vegetableType, "Vegetable type");
         if (totalSacksPurchased <= 0) {
             throw new IllegalArgumentException("Total sacks purchased must be greater than zero.");
@@ -67,8 +132,9 @@ public class ModuleOneRepository {
         long now = System.currentTimeMillis();
         LotEntity lot = new LotEntity(
                 UUID.randomUUID().toString(),
-                providerId.trim(),
-                providerName.trim(),
+                userId,
+                provider.providerId,
+                provider.displayName,
                 vegetableType.trim(),
                 totalSacksPurchased,
                 rawKilosReceived,
@@ -91,9 +157,7 @@ public class ModuleOneRepository {
         if (expenseAccount == null) {
             throw new IllegalArgumentException("Expense account is required.");
         }
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Expense amount must be greater than zero.");
-        }
+        validatePositiveAmount(amount, "Expense amount");
         if (paymentSource == null) {
             throw new IllegalArgumentException("Payment source is required.");
         }
@@ -117,9 +181,7 @@ public class ModuleOneRepository {
 
     public SpoilageLogEntity logSpoilage(String lotId, double kilosLost, LossType lossType) {
         LotWithDetails lotWithDetails = requireLotWithDetails(lotId);
-        if (kilosLost <= 0) {
-            throw new IllegalArgumentException("Spoilage kilos must be greater than zero.");
-        }
+        validatePositiveAmount(kilosLost, "Spoilage kilos");
         if (lossType == null) {
             throw new IllegalArgumentException("Loss type is required.");
         }
@@ -155,21 +217,194 @@ public class ModuleOneRepository {
         return log;
     }
 
+    public RetailSaleEntity recordRetailSale(double totalAmount, String notes) {
+        validatePositiveAmount(totalAmount, "Retail sale amount");
+        String userId = ensureLocalUserExists();
+        RetailSaleEntity sale = new RetailSaleEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                totalAmount,
+                normalizeOptionalText(notes),
+                System.currentTimeMillis()
+        );
+        database.runInTransaction(() -> {
+            salesDao.insertRetailSale(sale);
+            persistJournalDraft(JournalEntryFactory.buildRetailSaleEntry(sale));
+        });
+        return sale;
+    }
+
+    public WholesaleInvoiceEntity createWholesaleInvoice(String customerId, String description, double totalAmount, String notes) {
+        validatePositiveAmount(totalAmount, "Invoice amount");
+        validateRequiredText(customerId, "Customer");
+        validateRequiredText(description, "Invoice description");
+
+        String userId = ensureLocalUserExists();
+        CustomerEntity customer = requireCustomer(customerId);
+        long now = System.currentTimeMillis();
+        WholesaleInvoiceEntity invoice = new WholesaleInvoiceEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                customer.customerId,
+                buildInvoiceNumber(now),
+                description.trim(),
+                totalAmount,
+                normalizeOptionalText(notes),
+                now
+        );
+
+        database.runInTransaction(() -> {
+            salesDao.insertWholesaleInvoice(invoice);
+            persistJournalDraft(JournalEntryFactory.buildWholesaleInvoiceEntry(invoice, customer));
+        });
+        return invoice;
+    }
+
+    public CustomerCollectionResult collectCustomerPayment(String customerId, double totalAmount, String notes) {
+        validateRequiredText(customerId, "Customer");
+        validatePositiveAmount(totalAmount, "Collection amount");
+
+        String userId = ensureLocalUserExists();
+        CustomerEntity customer = requireCustomer(customerId);
+        List<OpenCustomerInvoice> openInvoices = getOpenInvoicesForCustomer(customerId);
+        List<PaymentAllocationEngine.AllocationStep> plan = PaymentAllocationEngine.allocate(totalAmount, openInvoices);
+        long now = System.currentTimeMillis();
+        CustomerPaymentEntity payment = new CustomerPaymentEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                customer.customerId,
+                totalAmount,
+                normalizeOptionalText(notes),
+                now
+        );
+
+        List<CustomerPaymentAllocationEntity> allocations = new ArrayList<>();
+        List<WholesaleInvoiceEntity> invoices = new ArrayList<>();
+        for (int index = 0; index < plan.size(); index++) {
+            PaymentAllocationEngine.AllocationStep step = plan.get(index);
+            allocations.add(new CustomerPaymentAllocationEntity(
+                    UUID.randomUUID().toString(),
+                    payment.paymentId,
+                    step.getReferenceId(),
+                    step.getAmountApplied(),
+                    index,
+                    now
+            ));
+            WholesaleInvoiceEntity invoice = salesDao.getInvoiceById(step.getReferenceId());
+            if (invoice != null) {
+                invoices.add(invoice);
+            }
+        }
+
+        database.runInTransaction(() -> {
+            salesDao.insertCustomerPayment(payment);
+            salesDao.insertCustomerPaymentAllocations(allocations);
+            persistJournalDraft(JournalEntryFactory.buildCustomerCollectionEntry(payment, customer, allocations, invoices));
+        });
+        return new CustomerCollectionResult(payment, allocations);
+    }
+
+    public ProviderSettlementResult settleProviderBalance(String providerId, double totalAmount, String notes) {
+        validateRequiredText(providerId, "Provider");
+        validatePositiveAmount(totalAmount, "Provider payment amount");
+
+        String userId = ensureLocalUserExists();
+        ProviderEntity provider = requireProvider(providerId);
+        List<OpenProviderLotPayable> openPayables = getOpenLotPayablesForProvider(providerId);
+        List<PaymentAllocationEngine.AllocationStep> plan = PaymentAllocationEngine.allocate(totalAmount, openPayables);
+        long now = System.currentTimeMillis();
+        ProviderPaymentEntity payment = new ProviderPaymentEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                provider.providerId,
+                totalAmount,
+                normalizeOptionalText(notes),
+                now
+        );
+
+        List<ProviderPaymentAllocationEntity> allocations = new ArrayList<>();
+        List<LotEntity> allocatedLots = new ArrayList<>();
+        for (int index = 0; index < plan.size(); index++) {
+            PaymentAllocationEngine.AllocationStep step = plan.get(index);
+            allocations.add(new ProviderPaymentAllocationEntity(
+                    UUID.randomUUID().toString(),
+                    payment.paymentId,
+                    step.getReferenceId(),
+                    step.getAmountApplied(),
+                    index,
+                    now
+            ));
+            LotEntity lot = lotDao.getLotById(step.getReferenceId(), userId);
+            if (lot != null) {
+                allocatedLots.add(lot);
+            }
+        }
+
+        database.runInTransaction(() -> {
+            salesDao.insertProviderPayment(payment);
+            salesDao.insertProviderPaymentAllocations(allocations);
+            persistJournalDraft(JournalEntryFactory.buildProviderSettlementEntry(payment, provider, allocations, allocatedLots));
+        });
+        return new ProviderSettlementResult(payment, allocations);
+    }
+
+    public List<ProviderEntity> getProviders() {
+        String userId = ensureLocalUserExists();
+        List<ProviderEntity> providers = providerDao.getActiveProvidersForUser(userId);
+        return providers == null ? Collections.emptyList() : providers;
+    }
+
+    public List<CustomerEntity> getCustomers() {
+        String userId = ensureLocalUserExists();
+        List<CustomerEntity> customers = customerDao.getActiveCustomersForUser(userId);
+        return customers == null ? Collections.emptyList() : customers;
+    }
+
+    public List<CustomerLedgerSummary> getCustomerLedgerSummaries() {
+        String userId = ensureLocalUserExists();
+        List<CustomerLedgerSummary> summaries = salesDao.getCustomerLedgerSummaries(userId);
+        return summaries == null ? Collections.emptyList() : summaries;
+    }
+
+    public List<ProviderLedgerSummary> getProviderLedgerSummaries() {
+        String userId = ensureLocalUserExists();
+        List<ProviderLedgerSummary> summaries = salesDao.getProviderLedgerSummaries(userId);
+        return summaries == null ? Collections.emptyList() : summaries;
+    }
+
+    public List<OpenCustomerInvoice> getOpenInvoicesForCustomer(String customerId) {
+        validateRequiredText(customerId, "Customer");
+        ensureLocalUserExists();
+        List<OpenCustomerInvoice> invoices = salesDao.getOpenInvoicesForCustomer(customerId.trim());
+        return invoices == null ? Collections.emptyList() : invoices;
+    }
+
+    public List<OpenProviderLotPayable> getOpenLotPayablesForProvider(String providerId) {
+        validateRequiredText(providerId, "Provider");
+        ensureLocalUserExists();
+        List<OpenProviderLotPayable> payables = salesDao.getOpenLotPayablesForProvider(providerId.trim());
+        return payables == null ? Collections.emptyList() : payables;
+    }
+
     public LotWithDetails getLotWithDetails(String lotId) {
         return requireLotWithDetails(lotId);
     }
 
     public LotEntity getLatestLot() {
-        return lotDao.getLatestLot();
+        String userId = ensureLocalUserExists();
+        return lotDao.getLatestLot(userId);
     }
 
     public List<LotEntity> getAllLots() {
-        List<LotEntity> lots = lotDao.getAllLots();
+        String userId = ensureLocalUserExists();
+        List<LotEntity> lots = lotDao.getAllLotsForUser(userId);
         return lots == null ? Collections.emptyList() : lots;
     }
 
     public List<JournalEntryWithLines> getJournalEntries(String lotId) {
-        List<JournalEntryWithLines> entries = journalDao.getEntriesForLot(lotId);
+        validateRequiredText(lotId, "Lot ID");
+        String userId = ensureLocalUserExists();
+        List<JournalEntryWithLines> entries = journalDao.getEntriesForLot(lotId.trim(), userId);
         return entries == null ? Collections.emptyList() : entries;
     }
 
@@ -188,7 +423,9 @@ public class ModuleOneRepository {
         Calendar end = (Calendar) start.clone();
         end.add(Calendar.MONTH, 1);
 
+        String userId = ensureLocalUserExists();
         List<JournalEntryWithLines> entries = journalDao.getEntriesForPeriod(
+                userId,
                 start.getTimeInMillis(),
                 end.getTimeInMillis()
         );
@@ -196,18 +433,21 @@ public class ModuleOneRepository {
     }
 
     public long getOldestJournalEntryTimestamp() {
-        Long timestamp = journalDao.getOldestEntryTimestamp();
+        String userId = ensureLocalUserExists();
+        Long timestamp = journalDao.getOldestEntryTimestamp(userId);
         return timestamp == null ? System.currentTimeMillis() : timestamp;
     }
 
     public long getLatestJournalEntryTimestamp() {
-        Long timestamp = journalDao.getLatestEntryTimestamp();
+        String userId = ensureLocalUserExists();
+        Long timestamp = journalDao.getLatestEntryTimestamp(userId);
         return timestamp == null ? System.currentTimeMillis() : timestamp;
     }
 
     private LotEntity requireLot(String lotId) {
         validateRequiredText(lotId, "Lot ID");
-        LotEntity lot = lotDao.getLotById(lotId.trim());
+        String userId = ensureLocalUserExists();
+        LotEntity lot = lotDao.getLotById(lotId.trim(), userId);
         if (lot == null) {
             throw new IllegalArgumentException("No lot found for ID: " + lotId.trim());
         }
@@ -216,11 +456,51 @@ public class ModuleOneRepository {
 
     private LotWithDetails requireLotWithDetails(String lotId) {
         validateRequiredText(lotId, "Lot ID");
-        LotWithDetails lot = lotDao.getLotWithDetails(lotId.trim());
+        String userId = ensureLocalUserExists();
+        LotWithDetails lot = lotDao.getLotWithDetails(lotId.trim(), userId);
         if (lot == null || lot.lot == null) {
             throw new IllegalArgumentException("No lot found for ID: " + lotId.trim());
         }
         return lot;
+    }
+
+    private ProviderEntity requireProvider(String providerId) {
+        validateRequiredText(providerId, "Provider");
+        ProviderEntity provider = providerDao.getById(providerId.trim());
+        if (provider == null || !LOCAL_USER_ID.equals(provider.userId) || provider.isActive != 1) {
+            throw new IllegalArgumentException("No provider found for the selected record.");
+        }
+        return provider;
+    }
+
+    private CustomerEntity requireCustomer(String customerId) {
+        validateRequiredText(customerId, "Customer");
+        CustomerEntity customer = customerDao.getById(customerId.trim());
+        if (customer == null || !LOCAL_USER_ID.equals(customer.userId) || customer.isActive != 1) {
+            throw new IllegalArgumentException("No customer found for the selected record.");
+        }
+        return customer;
+    }
+
+    private String ensureLocalUserExists() {
+        UserEntity existingUser = userDao.getById(LOCAL_USER_ID);
+        if (existingUser == null) {
+            long now = System.currentTimeMillis();
+            userDao.insert(new UserEntity(
+                    LOCAL_USER_ID,
+                    "local_owner",
+                    "Local Owner",
+                    "Kilgi Demo Business",
+                    null,
+                    null,
+                    "PENDING_LOGIN_SETUP",
+                    "PENDING_LOGIN_SETUP",
+                    "ACTIVE",
+                    now,
+                    now
+            ));
+        }
+        return LOCAL_USER_ID;
     }
 
     private void persistJournalDraft(LedgerEntryDraft draft) {
@@ -228,10 +508,39 @@ public class ModuleOneRepository {
         journalDao.insertLines(draft.getLines());
     }
 
+    private static String buildInvoiceNumber(long timestamp) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(timestamp);
+        return String.format(
+                java.util.Locale.US,
+                "INV-%04d%02d%02d-%02d%02d%02d",
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH),
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                calendar.get(Calendar.SECOND)
+        );
+    }
+
     private static void validateRequiredText(String value, String label) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException(label + " is required.");
         }
+    }
+
+    private static void validatePositiveAmount(double value, String label) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(label + " must be greater than zero.");
+        }
+    }
+
+    private static String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
 

@@ -1,6 +1,26 @@
 # Kilgi
 
-Kilgi is an Android app for vegetable vendors. Module 1 now runs as a **Room-backed landed cost procurement and inventory ledger prototype** for Carbon Market operations.
+Kilgi is an Android app for vegetable vendors. Module 1 now runs as a **Room-backed landed cost procurement and inventory ledger prototype** for Carbon Market operations, and Module 2 has now started implementation for **sales, receivables, provider payables, and party master data**.
+
+## Module 2 implementation started
+
+The current iteration adds the first end-to-end foundation for the Unified Sales Engine & Provider Settlements module:
+
+- Room master tables for `users`, `providers`, and `customers`
+- user-owned `lots` linked to provider records
+- `retail_sales` for end-of-day bulk retail cash entries
+- `wholesale_invoices` for wholesale sales on account
+- `customer_payments` plus `customer_payment_allocations` for A/R collection matching
+- `provider_payments` plus `provider_payment_allocations` for FIFO A/P settlement matching
+- generalized journal entries that can now post lot-linked and non-lot accounting events
+- a FIFO waterfall allocator in `PaymentAllocationEngine`
+- launcher-screen dialogs to:
+  - add providers
+  - add customers
+  - record retail EOD sales
+  - create wholesale invoices
+  - collect customer payments
+  - settle provider balances
 
 ## What Module 1 now does
 
@@ -21,10 +41,19 @@ Kilgi is an Android app for vegetable vendors. Module 1 now runs as a **Room-bac
 The database layer lives under `app/src/main/java/com/example/kilgi/inventory/data/`.
 
 - `lots`
+- `users`
+- `providers`
+- `customers`
 - `batch_expenses`
 - `spoilage_logs`
 - `journal_entries`
 - `journal_lines`
+- `retail_sales`
+- `wholesale_invoices`
+- `customer_payments`
+- `customer_payment_allocations`
+- `provider_payments`
+- `provider_payment_allocations`
 
 ## Accounting rules implemented
 
@@ -87,7 +116,7 @@ The app now keeps a centralized merchandising-oriented chart of accounts in `inv
 ## Main packages
 
 - `inventory/data` - Room entities, DAOs, enums, and database singleton
-- `inventory/service` - valuation engine and repository orchestration
+- `inventory/service` - valuation engine, repository orchestration, and payment allocation logic
 - `inventory/accounting` - journal draft builders and chart-of-accounts constants
 
 Legacy in-memory domain classes remain in the project for reference, but the launcher screen now uses the Room-backed flow.
@@ -102,6 +131,8 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 - tapping a lot row to view its details in a compact table
 - adding expenses or logging spoilage directly from the selected lot detail area
 - keeping the `Journal` screen available from the top menu for the selected lot
+- initial Module 2 actions for customer/provider setup, retail sales, wholesale invoices, collections, and provider settlements
+- a live text summary of customer receivables and provider payables
 
 `JournalActivity` now provides a dedicated **Journal** screen that:
 
@@ -118,8 +149,9 @@ Legacy in-memory domain classes remain in the project for reference, but the lau
 
 ## Next likely improvements
 
-- Add a dedicated providers master table
-- Add RecyclerView-based lot and journal screens if the dataset becomes large
-- Add Module 2 sale posting into `50100 COGS`
-- Add Room migrations once the schema starts evolving
+- add dedicated customer/provider ledger screens with table views instead of summary text blocks
+- add wholesale invoice detail lines and explicit SKU/lot sale attribution
+- add COGS and inventory depletion posting for Module 2 sales
+- replace the temporary local default user with real login/register flows using the `users` table
+- add Room migrations once the schema starts evolving
 

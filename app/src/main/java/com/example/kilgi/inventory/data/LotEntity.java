@@ -2,14 +2,35 @@ package com.example.kilgi.inventory.data;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
+import androidx.room.ForeignKey;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "lots")
+@Entity(
+        tableName = "lots",
+        foreignKeys = {
+                @ForeignKey(
+                        entity = UserEntity.class,
+                        parentColumns = "userId",
+                        childColumns = "userId",
+                        onDelete = ForeignKey.CASCADE
+                ),
+                @ForeignKey(
+                        entity = ProviderEntity.class,
+                        parentColumns = "providerId",
+                        childColumns = "providerId",
+                        onDelete = ForeignKey.RESTRICT
+                )
+        },
+        indices = {@Index("userId"), @Index("providerId")}
+)
 public class LotEntity {
 
     @PrimaryKey
     @NonNull
     public final String lotId;
+    @NonNull
+    public final String userId;
     @NonNull
     public final String providerId;
     @NonNull
@@ -28,6 +49,7 @@ public class LotEntity {
 
     public LotEntity(
             @NonNull String lotId,
+            @NonNull String userId,
             @NonNull String providerId,
             @NonNull String providerName,
             @NonNull String vegetableType,
@@ -40,6 +62,7 @@ public class LotEntity {
             long timestamp
     ) {
         this.lotId = lotId;
+        this.userId = userId;
         this.providerId = providerId;
         this.providerName = providerName;
         this.vegetableType = vegetableType;

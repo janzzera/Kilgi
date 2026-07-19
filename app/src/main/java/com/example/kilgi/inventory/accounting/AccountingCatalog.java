@@ -166,10 +166,14 @@ public final class AccountingCatalog {
 
     public static final String CASH_CODE = CASH_IN_BANK.getCode();
     public static final String CASH_NAME = CASH_IN_BANK.getName();
+    public static final String ACCOUNTS_RECEIVABLE_CODE = ACCOUNTS_RECEIVABLE.getCode();
+    public static final String ACCOUNTS_RECEIVABLE_NAME = ACCOUNTS_RECEIVABLE.getName();
     public static final String INVENTORY_CODE = INVENTORY.getCode();
     public static final String INVENTORY_NAME = INVENTORY.getName();
     public static final String ACCOUNTS_PAYABLE_CODE = ACCOUNTS_PAYABLE.getCode();
     public static final String ACCOUNTS_PAYABLE_NAME = ACCOUNTS_PAYABLE.getName();
+    public static final String SALES_CODE = SALES.getCode();
+    public static final String SALES_NAME = SALES.getName();
     public static final String COGS_CODE = COGS.getCode();
     public static final String COGS_NAME = COGS.getName();
     public static final String FREIGHT_IN_CODE = FREIGHT_IN.getCode();

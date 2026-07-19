@@ -1,6 +1,7 @@
 package com.example.kilgi.inventory.data;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Index;
@@ -23,7 +24,7 @@ public class JournalLineEntity {
     public final String lineId;
     @NonNull
     public final String entryId;
-    @NonNull
+    @Nullable
     public final String lotId;
     @NonNull
     public final String accountCode;
@@ -33,18 +34,20 @@ public class JournalLineEntity {
     public final String lineType;
     public final double amount;
     public final String providerId;
+    public final String customerId;
     public final String paymentSource;
     public final String memo;
 
     public JournalLineEntity(
             @NonNull String lineId,
             @NonNull String entryId,
-            @NonNull String lotId,
+            @Nullable String lotId,
             @NonNull String accountCode,
             @NonNull String accountName,
             @NonNull String lineType,
             double amount,
             String providerId,
+            String customerId,
             String paymentSource,
             String memo
     ) {
@@ -56,6 +59,7 @@ public class JournalLineEntity {
         this.lineType = lineType;
         this.amount = amount;
         this.providerId = providerId;
+        this.customerId = customerId;
         this.paymentSource = paymentSource;
         this.memo = memo;
     }
