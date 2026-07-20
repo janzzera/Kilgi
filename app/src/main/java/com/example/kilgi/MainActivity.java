@@ -386,7 +386,7 @@ public class MainActivity extends AppCompatActivity {
                 String vegetableType = InventoryInputParser.requireText(vegetableTypeInput.getText().toString(), "Vegetable type");
                 int totalSacks = InventoryInputParser.parseRequiredPositiveInt(totalSacksInput.getText().toString(), "Total sacks purchased");
                 double rawKilos = InventoryInputParser.parseRequiredPositiveDouble(rawKilosInput.getText().toString(), "Raw kilograms received");
-                double baseUnitPrice = InventoryInputParser.parseOptionalNonNegativeDouble(baseUnitPriceInput.getText().toString(), "Base unit price per kilo");
+                double baseUnitPrice = InventoryInputParser.parseRequiredPositiveDouble(baseUnitPriceInput.getText().toString(), "Base unit price per kilo");
                 double standardFreight = InventoryInputParser.parseOptionalNonNegativeDouble(standardFreightInput.getText().toString(), "Standard freight");
                 PaymentSource purchaseSource = (PaymentSource) purchaseSourceSpinner.getSelectedItem();
                 PaymentSource freightSource = (PaymentSource) freightSourceSpinner.getSelectedItem();
