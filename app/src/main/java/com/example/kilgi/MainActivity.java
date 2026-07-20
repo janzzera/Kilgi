@@ -65,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private MaterialToolbar topAppBar;
     private ScrollView contentScrollView;
     private Spinner monthFilterSpinner;
+    private Spinner yearFilterSpinner;
     private Spinner dayFilterSpinner;
     private TextView batchStatusView;
     private TextView expenseStatusView;
@@ -88,6 +89,11 @@ public class MainActivity extends AppCompatActivity {
     private ModuleOneRepository repository;
     private String initialLotId;
     private String currentSelectedLotId;
+    private ArrayAdapter<String> monthFilterAdapter;
+    private ArrayAdapter<String> dayFilterAdapter;
+    private ArrayAdapter<Integer> yearFilterAdapter;
+    private final List<String> dayFilterOptions = new ArrayList<>();
+    private final List<Integer> yearFilterOptions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
         topAppBar = findViewById(R.id.top_app_bar);
         contentScrollView = findViewById(R.id.content_scroll);
         monthFilterSpinner = findViewById(R.id.spinner_filter_month);
+        yearFilterSpinner = findViewById(R.id.spinner_filter_year);
         dayFilterSpinner = findViewById(R.id.spinner_filter_day);
         batchStatusView = findViewById(R.id.text_batch_status);
         expenseStatusView = findViewById(R.id.text_expense_status);
@@ -148,25 +155,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupFilterSpinners() {
-        monthFilterSpinner.setAdapter(new ArrayAdapter<>(
+        monthFilterAdapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_item,
                 buildMonthOptions()
-        ));
-        ((ArrayAdapter<?>) monthFilterSpinner.getAdapter())
-                .setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        );
+        monthFilterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        monthFilterSpinner.setAdapter(monthFilterAdapter);
 
-        dayFilterSpinner.setAdapter(new ArrayAdapter<>(
+        yearFilterAdapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_item,
-                buildDayOptions()
-        ));
-        ((ArrayAdapter<?>) dayFilterSpinner.getAdapter())
-                .setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                yearFilterOptions
+        );
+        yearFilterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        yearFilterSpinner.setAdapter(yearFilterAdapter);
+
+        dayFilterAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                dayFilterOptions
+        );
+        dayFilterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dayFilterSpinner.setAdapter(dayFilterAdapter);
 
         Calendar calendar = Calendar.getInstance();
+        int currentYear = calendar.get(Calendar.YEAR);
+        updateYearOptions(currentYear, currentYear, currentYear);
         monthFilterSpinner.setSelection(calendar.get(Calendar.MONTH) + 1);
+        updateDayOptions(currentYear, calendar.get(Calendar.MONTH) + 1, LotFilterUtils.ALL_DAYS);
         dayFilterSpinner.setSelection(0);
+        bindFilterSpinnerDependencies();
     }
 
     private List<String> buildMonthOptions() {
@@ -179,13 +198,62 @@ public class MainActivity extends AppCompatActivity {
         return options;
     }
 
-    private List<String> buildDayOptions() {
+    private List<String> buildDayOptions(int year, int monthOfYear) {
         List<String> options = new ArrayList<>();
         options.add(getString(R.string.filter_all_days));
-        for (int day = 1; day <= 31; day++) {
+        int maxDays = getMaxDaysForMonth(year, monthOfYear);
+        for (int day = 1; day <= maxDays; day++) {
             options.add(String.valueOf(day));
         }
         return options;
+    }
+
+    private void bindFilterSpinnerDependencies() {
+        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                syncDayFilterOptions();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                syncDayFilterOptions();
+            }
+        };
+        monthFilterSpinner.setOnItemSelectedListener(listener);
+        yearFilterSpinner.setOnItemSelectedListener(listener);
+    }
+
+    private void syncDayFilterOptions() {
+        updateDayOptions(getSelectedYearFilter(), getSelectedMonthFilter(), getSelectedDayFilter());
+    }
+
+    private void updateDayOptions(int year, int monthOfYear, int preferredDay) {
+        List<String> updatedOptions = buildDayOptions(year, monthOfYear);
+        if (!updatedOptions.equals(dayFilterOptions)) {
+            dayFilterOptions.clear();
+            dayFilterOptions.addAll(updatedOptions);
+            dayFilterAdapter.notifyDataSetChanged();
+        }
+
+        int selectedDay = preferredDay;
+        if (selectedDay > getMaxDaysForMonth(year, monthOfYear)) {
+            selectedDay = LotFilterUtils.ALL_DAYS;
+        }
+        dayFilterSpinner.setSelection(Math.max(0, selectedDay));
+    }
+
+    private int getMaxDaysForMonth(int year, int monthOfYear) {
+        if (monthOfYear == LotFilterUtils.ALL_MONTHS) {
+            return 31;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        calendar.set(Calendar.YEAR, year);
+        calendar.set(Calendar.MONTH, Math.max(0, monthOfYear - 1));
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        return calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
     }
 
     private void bindActions() {
@@ -229,6 +297,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadInitialDashboard() {
+        int yearFilter = getSelectedYearFilter();
         int monthFilter = getSelectedMonthFilter();
         int dayFilter = getSelectedDayFilter();
         ioExecutor.execute(() -> {
@@ -237,11 +306,12 @@ public class MainActivity extends AppCompatActivity {
                 LotEntity latestLot = repository.getLatestLot();
                 targetLotId = latestLot == null ? null : latestLot.lotId;
             }
-            refreshDashboardOnWorker(targetLotId, null, null, null, null, monthFilter, dayFilter);
+            refreshDashboardOnWorker(targetLotId, null, null, null, null, yearFilter, monthFilter, dayFilter);
         });
     }
 
     private void refreshDashboardAsync(String targetLotId, String batchStatus, String expenseStatus, String spoilageStatus) {
+        int yearFilter = getSelectedYearFilter();
         int monthFilter = getSelectedMonthFilter();
         int dayFilter = getSelectedDayFilter();
         ioExecutor.execute(() -> refreshDashboardOnWorker(
@@ -250,9 +320,15 @@ public class MainActivity extends AppCompatActivity {
                 expenseStatus,
                 spoilageStatus,
                 null,
+                yearFilter,
                 monthFilter,
                 dayFilter
         ));
+    }
+
+    private int getSelectedYearFilter() {
+        Integer selectedYear = (Integer) yearFilterSpinner.getSelectedItem();
+        return selectedYear == null ? Calendar.getInstance().get(Calendar.YEAR) : selectedYear;
     }
 
     private int getSelectedMonthFilter() {
@@ -314,6 +390,7 @@ public class MainActivity extends AppCompatActivity {
                 double standardFreight = InventoryInputParser.parseOptionalNonNegativeDouble(standardFreightInput.getText().toString(), "Standard freight");
                 PaymentSource purchaseSource = (PaymentSource) purchaseSourceSpinner.getSelectedItem();
                 PaymentSource freightSource = (PaymentSource) freightSourceSpinner.getSelectedItem();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
 
@@ -336,6 +413,7 @@ public class MainActivity extends AppCompatActivity {
                                 getString(R.string.expense_status_idle),
                                 getString(R.string.spoilage_status_idle),
                                 null,
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -381,6 +459,7 @@ public class MainActivity extends AppCompatActivity {
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(expenseAmountInput.getText().toString(), "Expense amount");
                 PaymentSource paymentSource = (PaymentSource) paymentSourceSpinner.getSelectedItem();
                 String lotId = currentSelectedLotId;
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
 
@@ -394,6 +473,7 @@ public class MainActivity extends AppCompatActivity {
                                 getString(R.string.expense_added_message, expenseAccount == null ? "" : expenseAccount.getName()),
                                 null,
                                 null,
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -435,6 +515,7 @@ public class MainActivity extends AppCompatActivity {
                 double kilosLost = InventoryInputParser.parseRequiredPositiveDouble(spoilageKilosInput.getText().toString(), "Spoilage kilos");
                 LossType lossType = (LossType) lossTypeSpinner.getSelectedItem();
                 String lotId = currentSelectedLotId;
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
 
@@ -451,6 +532,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 message,
                                 null,
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -511,11 +593,14 @@ public class MainActivity extends AppCompatActivity {
             String expenseStatus,
             String spoilageStatus,
             String salesStatus,
+            int yearFilter,
             int monthFilter,
             int dayFilter
     ) {
         try {
-            List<LotRecord> filteredLots = buildLotRecords(repository.getAllLots(), monthFilter, dayFilter);
+            List<LotEntity> allLots = repository.getAllLots();
+            FilterYearRange yearRange = resolveLotYearRange(allLots, yearFilter);
+            List<LotRecord> filteredLots = buildLotRecords(allLots, yearFilter, monthFilter, dayFilter);
             String salesSummary = buildSalesSummaryText();
             String effectiveLotId = resolveSelectedLotId(targetLotId, filteredLots);
             LotRecord selectedRecord = findRecord(filteredLots, effectiveLotId);
@@ -524,6 +609,8 @@ public class MainActivity extends AppCompatActivity {
                     : batchStatus;
 
             runOnUiThread(() -> {
+                updateYearOptions(yearRange.minYear, yearRange.maxYear, yearFilter);
+                syncDayFilterOptions();
                 currentSelectedLotId = selectedRecord == null ? null : selectedRecord.details.lot.lotId;
                 batchStatusView.setText(batchMessage);
                 if (expenseStatus != null) {
@@ -549,10 +636,46 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private List<LotRecord> buildLotRecords(List<LotEntity> lots, int monthFilter, int dayFilter) {
+    private FilterYearRange resolveLotYearRange(List<LotEntity> lots, int selectedYear) {
+        int minYear = selectedYear;
+        int maxYear = selectedYear;
+        Calendar calendar = Calendar.getInstance();
+
+        for (LotEntity lot : lots) {
+            calendar.setTimeInMillis(lot.timestamp);
+            int lotYear = calendar.get(Calendar.YEAR);
+            minYear = Math.min(minYear, lotYear);
+            maxYear = Math.max(maxYear, lotYear);
+        }
+
+        return new FilterYearRange(minYear, maxYear);
+    }
+
+    private void updateYearOptions(int minYear, int maxYear, int selectedYear) {
+        int safeMinYear = Math.min(minYear, selectedYear);
+        int safeMaxYear = Math.max(maxYear, selectedYear);
+
+        List<Integer> updatedYears = new ArrayList<>();
+        for (int year = safeMaxYear; year >= safeMinYear; year--) {
+            updatedYears.add(year);
+        }
+
+        if (!updatedYears.equals(yearFilterOptions)) {
+            yearFilterOptions.clear();
+            yearFilterOptions.addAll(updatedYears);
+            yearFilterAdapter.notifyDataSetChanged();
+        }
+
+        int selectedIndex = yearFilterOptions.indexOf(selectedYear);
+        if (selectedIndex >= 0) {
+            yearFilterSpinner.setSelection(selectedIndex);
+        }
+    }
+
+    private List<LotRecord> buildLotRecords(List<LotEntity> lots, int yearFilter, int monthFilter, int dayFilter) {
         List<LotRecord> records = new ArrayList<>();
         for (LotEntity lot : lots) {
-            if (!LotFilterUtils.matchesMonthAndDay(lot.timestamp, monthFilter, dayFilter)) {
+            if (!LotFilterUtils.matchesYearMonthAndDay(lot.timestamp, yearFilter, monthFilter, dayFilter)) {
                 continue;
             }
             LotWithDetails lotWithDetails = repository.getLotWithDetails(lot.lotId);
@@ -746,6 +869,7 @@ public class MainActivity extends AppCompatActivity {
                 String contact = contactInput.getText().toString();
                 String address = addressInput.getText().toString();
                 String notes = notesInput.getText().toString();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
                 dialog.dismiss();
@@ -758,6 +882,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 null,
                                 getString(R.string.provider_created_message, provider.displayName),
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -792,6 +917,7 @@ public class MainActivity extends AppCompatActivity {
                 String contact = contactInput.getText().toString();
                 String address = addressInput.getText().toString();
                 String notes = notesInput.getText().toString();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
                 dialog.dismiss();
@@ -804,6 +930,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 null,
                                 getString(R.string.customer_created_message, customer.displayName),
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -834,6 +961,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Retail sale amount");
                 String notes = notesInput.getText().toString();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
                 dialog.dismiss();
@@ -846,6 +974,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 null,
                                 getString(R.string.retail_sale_logged_message, currencyFormat.format(amount)),
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -896,6 +1025,7 @@ public class MainActivity extends AppCompatActivity {
                 String description = InventoryInputParser.requireText(descriptionInput.getText().toString(), "Invoice description");
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Invoice amount");
                 String notes = notesInput.getText().toString();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
                 dialog.dismiss();
@@ -908,6 +1038,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 null,
                                 getString(R.string.wholesale_invoice_created_message, invoice.invoiceNumber, customer.displayName),
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -958,6 +1089,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Collection amount");
                 String notes = notesInput.getText().toString();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
                 dialog.dismiss();
@@ -970,6 +1102,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 null,
                                 getString(R.string.customer_collection_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), customer.displayName, result.allocations.size()),
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -1020,6 +1153,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Provider payment amount");
                 String notes = notesInput.getText().toString();
+                int yearFilter = getSelectedYearFilter();
                 int monthFilter = getSelectedMonthFilter();
                 int dayFilter = getSelectedDayFilter();
                 dialog.dismiss();
@@ -1032,6 +1166,7 @@ public class MainActivity extends AppCompatActivity {
                                 null,
                                 null,
                                 getString(R.string.provider_settlement_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), provider.displayName, result.allocations.size()),
+                                yearFilter,
                                 monthFilter,
                                 dayFilter
                         );
@@ -1235,6 +1370,16 @@ public class MainActivity extends AppCompatActivity {
             this.details = details;
             this.snapshot = snapshot;
             this.expenseTotal = expenseTotal;
+        }
+    }
+
+    private static final class FilterYearRange {
+        private final int minYear;
+        private final int maxYear;
+
+        private FilterYearRange(int minYear, int maxYear) {
+            this.minYear = minYear;
+            this.maxYear = maxYear;
         }
     }
 }

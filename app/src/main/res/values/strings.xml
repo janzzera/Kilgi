@@ -13,6 +13,7 @@
     <string name="button_add_customer">Add customer</string>
     <string name="lots_filter_title">Filter</string>
     <string name="label_filter_month">Month</string>
+    <string name="label_filter_year">Year</string>
     <string name="label_filter_day">Day</string>
     <string name="button_apply_filter">Apply filter</string>
     <string name="filter_all_months">All months</string>

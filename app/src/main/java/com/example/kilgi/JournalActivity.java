@@ -64,6 +64,7 @@ public class JournalActivity extends AppCompatActivity {
     private ArrayAdapter<String> monthAdapter;
     private ArrayAdapter<Integer> yearAdapter;
     private final List<Integer> yearOptions = new ArrayList<>();
+    private boolean hasResumedOnce;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +91,16 @@ public class JournalActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         ioExecutor.shutdown();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (hasResumedOnce) {
+            loadSelectedJournal();
+            return;
+        }
+        hasResumedOnce = true;
     }
 
     private void bindViews() {
