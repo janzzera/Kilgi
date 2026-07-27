@@ -725,7 +725,6 @@ public class MainActivity extends AppCompatActivity {
         TableRow row = new TableRow(this);
         row.setBackgroundColor(0xFFE0E0E0);
         row.addView(createCell(getString(R.string.lot_table_header_date), true));
-        row.addView(createCell(getString(R.string.lot_table_header_id), true));
         row.addView(createCell(getString(R.string.lot_table_header_vegetable), true));
         row.addView(createCell(getString(R.string.lot_table_header_provider), true));
         row.addView(createCell(getString(R.string.lot_table_header_usable), true));
@@ -745,8 +744,10 @@ public class MainActivity extends AppCompatActivity {
                 null
         ));
 
-        row.addView(createCell(dateFormat.format(record.details.lot.timestamp), false));
-        row.addView(createCell(abbreviateLotId(record.details.lot.lotId), false));
+        row.addView(createCell(dateFormat.format(record.details.lot.timestamp)
+                .replaceAll(",?\\s*\\b\\d{4}\\b", "")
+                .replaceAll("\\b\\d{4}\\b\\s*\\.?", "")
+                .trim(), false));
         row.addView(createCell(record.details.lot.vegetableType, false));
         row.addView(createCell(record.details.lot.providerName, false));
         row.addView(createCell(formatWeight(record.snapshot.getNetUsableKilograms()), false));
