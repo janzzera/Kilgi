@@ -31,6 +31,12 @@ public final class LotFilterUtils {
         boolean dayMatches = dayOfMonth == ALL_DAYS || actualDay == dayOfMonth;
         return yearMatches && monthMatches && dayMatches;
     }
+
+    public static boolean matchesDateRange(long timestamp, long fromInclusive, long toInclusive) {
+        long start = Math.min(fromInclusive, toInclusive);
+        long end = Math.max(fromInclusive, toInclusive);
+        return timestamp >= start && timestamp <= end;
+    }
 }
 
 
