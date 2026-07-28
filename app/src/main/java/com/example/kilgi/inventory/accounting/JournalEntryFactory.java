@@ -48,8 +48,8 @@ public final class JournalEntryFactory {
         lines.add(line(
                 entry.entryId,
                 lot.lotId,
-                AccountingCatalog.INVENTORY_CODE,
-                AccountingCatalog.INVENTORY_NAME,
+                AccountingCatalog.PURCHASES_CODE,
+                AccountingCatalog.PURCHASES_NAME,
                 JournalLineType.DEBIT,
                 purchaseAmount,
                 lot.providerId,

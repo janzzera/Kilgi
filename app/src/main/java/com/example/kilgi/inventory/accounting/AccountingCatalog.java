@@ -170,6 +170,8 @@ public final class AccountingCatalog {
     public static final String ACCOUNTS_RECEIVABLE_NAME = ACCOUNTS_RECEIVABLE.getName();
     public static final String INVENTORY_CODE = INVENTORY.getCode();
     public static final String INVENTORY_NAME = INVENTORY.getName();
+    public static final String PURCHASES_CODE = PURCHASES.getCode();
+    public static final String PURCHASES_NAME = PURCHASES.getName();
     public static final String ACCOUNTS_PAYABLE_CODE = ACCOUNTS_PAYABLE.getCode();
     public static final String ACCOUNTS_PAYABLE_NAME = ACCOUNTS_PAYABLE.getName();
     public static final String SALES_CODE = SALES.getCode();
