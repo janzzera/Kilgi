@@ -24,6 +24,10 @@ public interface JournalDao {
     @Query("SELECT * FROM journal_entries WHERE userId = :userId AND timestamp >= :fromTimestamp AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
     List<JournalEntryWithLines> getEntriesForPeriod(String userId, long fromTimestamp, long toTimestamp);
 
+    @Transaction
+    @Query("SELECT * FROM journal_entries WHERE userId = :userId AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
+    List<JournalEntryWithLines> getEntriesUpTo(String userId, long toTimestamp);
+
     @Query("SELECT MIN(timestamp) FROM journal_entries WHERE userId = :userId")
     Long getOldestEntryTimestamp(String userId);
 

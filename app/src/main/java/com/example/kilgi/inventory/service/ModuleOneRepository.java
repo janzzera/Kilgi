@@ -432,6 +432,24 @@ public class ModuleOneRepository {
         return entries == null ? Collections.emptyList() : entries;
     }
 
+    public List<JournalEntryWithLines> getJournalEntriesUpTo(int monthOfYear, int year) {
+        if (monthOfYear < 1 || monthOfYear > 12) {
+            throw new IllegalArgumentException("Month must be between 1 and 12.");
+        }
+        if (year < 2000 || year > 9999) {
+            throw new IllegalArgumentException("Year must be a valid four-digit value.");
+        }
+
+        Calendar end = Calendar.getInstance();
+        end.clear();
+        end.set(year, monthOfYear - 1, 1, 0, 0, 0);
+        end.add(Calendar.MONTH, 1);
+
+        String userId = ensureLocalUserExists();
+        List<JournalEntryWithLines> entries = journalDao.getEntriesUpTo(userId, end.getTimeInMillis());
+        return entries == null ? Collections.emptyList() : entries;
+    }
+
     public long getOldestJournalEntryTimestamp() {
         String userId = ensureLocalUserExists();
         Long timestamp = journalDao.getOldestEntryTimestamp(userId);

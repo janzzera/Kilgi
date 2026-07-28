@@ -168,4 +168,17 @@
     <string name="journal_line_provider">Provider: %1$s</string>
     <string name="no_journal_placeholder">No journal entries available for the selected period.</string>
     <string name="no_sellable_inventory">N/A - no sellable inventory left</string>
+
+    <string name="journal_summary_title">Account Summaries (T-Accounts)</string>
+    <string name="journal_summary_caption">Summarized ledger activity for the period. Each T-account shows transactions that impacted that specific account during this month.</string>
+    <string name="trial_balance_title">Period Trial Balance</string>
+    <string name="trial_balance_caption">Calculated cumulative ending balance for all active accounts. A balanced trial balance ensures total debits equal total credits.</string>
+    <string name="trial_balance_header_account">Account</string>
+    <string name="trial_balance_header_debit">Debit Balance</string>
+    <string name="trial_balance_header_credit">Credit Balance</string>
+    <string name="trial_balance_totals">Totals</string>
+    <string name="t_account_debit_label">Debit</string>
+    <string name="t_account_credit_label">Credit</string>
+    <string name="t_account_total_label">Total Activity</string>
+    <string name="t_account_net_label">Net Balance: %1$s %2$s</string>
 </resources>

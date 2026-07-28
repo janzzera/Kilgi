@@ -22,6 +22,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.AccountingCatalog;
+import com.example.kilgi.inventory.accounting.AccountingSummaryService;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.JournalEntryEntity;
 import com.example.kilgi.inventory.data.JournalLineEntity;
@@ -58,6 +59,8 @@ public class JournalActivity extends AppCompatActivity {
     private TextView chartOfAccountsView;
     private TextView journalEmptyStateView;
     private TableLayout journalEntriesTable;
+    private LinearLayout tAccountsLayout;
+    private TableLayout trialBalanceTable;
 
     private ModuleOneRepository repository;
     private String initialLotId;
@@ -113,6 +116,8 @@ public class JournalActivity extends AppCompatActivity {
         chartOfAccountsView = findViewById(R.id.text_chart_of_accounts);
         journalEmptyStateView = findViewById(R.id.text_journal_empty_state);
         journalEntriesTable = findViewById(R.id.table_journal_entries);
+        tAccountsLayout = findViewById(R.id.layout_t_accounts);
+        trialBalanceTable = findViewById(R.id.table_trial_balance);
     }
 
     private void setupTopAppBar() {
@@ -238,7 +243,12 @@ public class JournalActivity extends AppCompatActivity {
     private void refreshJournalOnWorker(int monthOfYear, int year, String statusMessage, int minYear, int maxYear) {
         try {
             List<JournalEntryWithLines> entries = repository.getJournalEntriesForPeriod(monthOfYear, year);
+            List<JournalEntryWithLines> allEntriesUpTo = repository.getJournalEntriesUpTo(monthOfYear, year);
+            
             List<JournalRow> rows = buildJournalRows(entries);
+            List<AccountingSummaryService.TAccount> tAccounts = AccountingSummaryService.calculateTAccounts(entries);
+            AccountingSummaryService.TrialBalance trialBalance = AccountingSummaryService.calculateTrialBalance(allEntriesUpTo);
+
             String periodLabel = formatPeriodLabel(monthOfYear, year);
             String summary = getString(R.string.journal_period_summary, periodLabel, entries.size(), rows.size());
 
@@ -250,12 +260,16 @@ public class JournalActivity extends AppCompatActivity {
                         : statusMessage);
                 journalPeriodSummaryView.setText(summary);
                 renderJournalTable(rows);
+                renderTAccounts(tAccounts);
+                renderTrialBalance(trialBalance);
             });
         } catch (Exception exception) {
             runOnUiThread(() -> {
                 journalStatusView.setText(exception.getMessage());
                 journalPeriodSummaryView.setText(R.string.journal_period_summary_placeholder);
                 renderJournalTable(null);
+                renderTAccounts(null);
+                renderTrialBalance(null);
             });
         }
     }
@@ -297,6 +311,179 @@ public class JournalActivity extends AppCompatActivity {
         row.addView(createJournalCell(rowData.debitLabel, false));
         row.addView(createJournalCell(rowData.creditLabel, false));
         row.addView(createJournalCell(rowData.detailsLabel, false));
+        return row;
+    }
+
+    private void renderTAccounts(List<AccountingSummaryService.TAccount> tAccounts) {
+        tAccountsLayout.removeAllViews();
+        if (tAccounts == null || tAccounts.isEmpty()) {
+            return;
+        }
+
+        for (AccountingSummaryService.TAccount account : tAccounts) {
+            tAccountsLayout.addView(createTAccountCard(account));
+        }
+    }
+
+    private View createTAccountCard(AccountingSummaryService.TAccount account) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+        card.setPadding(dp(16), dp(16), dp(16), dp(16));
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.setMargins(0, 0, 0, dp(16));
+        card.setLayoutParams(cardParams);
+
+        // Header: Account Name & Code
+        TextView title = new TextView(this);
+        title.setText(getString(R.string.journal_line_account, account.accountCode, account.accountName));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        card.addView(title);
+
+        // Horizontal T-line
+        View hLine = new View(this);
+        hLine.setBackgroundColor(0xFF000000);
+        LinearLayout.LayoutParams hLineParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(2));
+        hLineParams.setMargins(0, dp(8), 0, 0);
+        card.addView(hLine, hLineParams);
+
+        // Columns Layout
+        LinearLayout colsLayout = new LinearLayout(this);
+        colsLayout.setOrientation(LinearLayout.HORIZONTAL);
+
+        // Debit Column
+        LinearLayout debitCol = new LinearLayout(this);
+        debitCol.setOrientation(LinearLayout.VERTICAL);
+        debitCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        debitCol.setPadding(0, dp(4), dp(8), 0);
+        
+        TextView debitHeader = new TextView(this);
+        debitHeader.setText(R.string.t_account_debit_label);
+        debitHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        debitHeader.setTypeface(null, android.graphics.Typeface.BOLD);
+        debitCol.addView(debitHeader);
+
+        for (JournalLineEntity line : account.debitLines) {
+            TextView lineView = new TextView(this);
+            lineView.setText(currencyFormat.format(line.amount));
+            lineView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            debitCol.addView(lineView);
+        }
+
+        // Vertical T-line
+        View vLine = new View(this);
+        vLine.setBackgroundColor(0xFF000000);
+        colsLayout.addView(debitCol);
+        colsLayout.addView(vLine, new LinearLayout.LayoutParams(dp(2), LinearLayout.LayoutParams.MATCH_PARENT));
+
+        // Credit Column
+        LinearLayout creditCol = new LinearLayout(this);
+        creditCol.setOrientation(LinearLayout.VERTICAL);
+        creditCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        creditCol.setPadding(dp(8), dp(4), 0, 0);
+        creditCol.setGravity(android.view.Gravity.END);
+
+        TextView creditHeader = new TextView(this);
+        creditHeader.setText(R.string.t_account_credit_label);
+        creditHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        creditHeader.setTypeface(null, android.graphics.Typeface.BOLD);
+        creditCol.addView(creditHeader);
+
+        for (JournalLineEntity line : account.creditLines) {
+            TextView lineView = new TextView(this);
+            lineView.setText(currencyFormat.format(line.amount));
+            lineView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            creditCol.addView(lineView);
+        }
+        colsLayout.addView(creditCol);
+
+        card.addView(colsLayout);
+
+        // Footer: Activity Totals
+        View footerLine = new View(this);
+        footerLine.setBackgroundColor(0xFFCCCCCC);
+        card.addView(footerLine, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
+
+        LinearLayout summaryLayout = new LinearLayout(this);
+        summaryLayout.setOrientation(LinearLayout.HORIZONTAL);
+        summaryLayout.setPadding(0, dp(4), 0, 0);
+
+        TextView debitTotal = new TextView(this);
+        debitTotal.setText(currencyFormat.format(account.totalDebit));
+        debitTotal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        debitTotal.setTypeface(null, android.graphics.Typeface.BOLD);
+        debitTotal.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        TextView creditTotal = new TextView(this);
+        creditTotal.setText(currencyFormat.format(account.totalCredit));
+        creditTotal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        creditTotal.setTypeface(null, android.graphics.Typeface.BOLD);
+        creditTotal.setGravity(android.view.Gravity.END);
+        creditTotal.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        summaryLayout.addView(debitTotal);
+        summaryLayout.addView(creditTotal);
+        card.addView(summaryLayout);
+
+        // Net Balance
+        double net = account.getNetBalance();
+        TextView netView = new TextView(this);
+        String direction = net >= 0 ? "(Dr)" : "(Cr)";
+        netView.setText(getString(R.string.t_account_net_label, currencyFormat.format(Math.abs(net)), direction));
+        netView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        netView.setTypeface(null, android.graphics.Typeface.BOLD);
+        netView.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        netView.setPadding(0, dp(8), 0, 0);
+        card.addView(netView);
+
+        return card;
+    }
+
+    private void renderTrialBalance(AccountingSummaryService.TrialBalance trialBalance) {
+        trialBalanceTable.removeAllViews();
+        trialBalanceTable.addView(createTrialBalanceHeaderRow());
+        if (trialBalance == null || trialBalance.entries.isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < trialBalance.entries.size(); i++) {
+            trialBalanceTable.addView(createTrialBalanceDataRow(trialBalance.entries.get(i), i));
+        }
+
+        trialBalanceTable.addView(createTrialBalanceTotalsRow(trialBalance.totalDebits, trialBalance.totalCredits));
+    }
+
+    private TableRow createTrialBalanceHeaderRow() {
+        TableRow row = new TableRow(this);
+        row.setBackgroundColor(0xFFE0E0E0);
+        row.addView(createJournalCell(getString(R.string.trial_balance_header_account), true));
+        row.addView(createJournalCell(getString(R.string.trial_balance_header_debit), true));
+        row.addView(createJournalCell(getString(R.string.trial_balance_header_credit), true));
+        return row;
+    }
+
+    private TableRow createTrialBalanceDataRow(AccountingSummaryService.TrialBalanceEntry entry, int index) {
+        TableRow row = new TableRow(this);
+        row.setBackgroundColor(index % 2 == 0 ? 0xFFF8F8F8 : 0xFFFFFFFF);
+        row.addView(createJournalCell(entry.accountCode + " " + entry.accountName, false));
+        row.addView(createJournalCell(entry.debit > 0 ? currencyFormat.format(entry.debit) : "-", false));
+        row.addView(createJournalCell(entry.credit > 0 ? currencyFormat.format(entry.credit) : "-", false));
+        return row;
+    }
+
+    private TableRow createTrialBalanceTotalsRow(double totalDebit, double totalCredit) {
+        TableRow row = new TableRow(this);
+        row.setBackgroundColor(0xFFEEEEEE);
+        TextView totalLabel = createJournalCell(getString(R.string.trial_balance_totals), true);
+        totalLabel.setGravity(android.view.Gravity.END);
+        row.addView(totalLabel);
+        row.addView(createJournalCell(currencyFormat.format(totalDebit), true));
+        row.addView(createJournalCell(currencyFormat.format(totalCredit), true));
         return row;
     }
 
