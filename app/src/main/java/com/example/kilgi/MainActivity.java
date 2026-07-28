@@ -135,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
         contentScrollView = findViewById(R.id.content_scroll);
         fromDateFilterButton = findViewById(R.id.button_filter_from_date);
         toDateFilterButton = findViewById(R.id.button_filter_to_date);
-        lotSortToggleButton = findViewById(R.id.button_toggle_lot_sort);
         previousLotPageButton = findViewById(R.id.button_previous_lot_page);
         nextLotPageButton = findViewById(R.id.button_next_lot_page);
         batchStatusView = findViewById(R.id.text_batch_status);
@@ -171,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
         currentLotPageIndex = 0;
         resolvedFromDateMillis = startOfDay(System.currentTimeMillis());
         resolvedToDateMillis = endOfDay(System.currentTimeMillis());
-        updateSortToggleButton();
         updateDateRangeViews(resolvedFromDateMillis, resolvedToDateMillis);
         updateLotPaginationControls(0, 0);
     }
@@ -230,12 +228,6 @@ public class MainActivity extends AppCompatActivity {
         toDateFilterButton.setOnClickListener(v -> showLotDatePicker(false));
         applyFilterButton.setOnClickListener(v -> {
             currentLotPageIndex = 0;
-            refreshDashboardAsync(currentSelectedLotId, null, null, null, null, true);
-        });
-        lotSortToggleButton.setOnClickListener(v -> {
-            lotSortAscending = !lotSortAscending;
-            currentLotPageIndex = 0;
-            updateSortToggleButton();
             refreshDashboardAsync(currentSelectedLotId, null, null, null, null, true);
         });
         previousLotPageButton.setOnClickListener(v -> loadLotPage(currentLotPageIndex - 1));
@@ -581,7 +573,6 @@ public class MainActivity extends AppCompatActivity {
                 resolvedToDateMillis = activeDateRange.toMillis;
                 currentLotPageIndex = pageIndex;
                 updateDateRangeViews(resolvedFromDateMillis, resolvedToDateMillis);
-                updateSortToggleButton();
                 updateLotPaginationControls(pageIndex, filteredLots.size());
                 currentSelectedLotId = selectedRecord == null ? null : selectedRecord.details.lot.lotId;
                 batchStatusView.setText(batchMessage);
@@ -596,6 +587,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 salesSummaryView.setText(salesSummary);
                 renderLotsTable(visibleLots, currentSelectedLotId);
+                updateSortToggleButton();
                 renderSelectedLotDetails(selectedRecord);
                 lotsEmptyStateView.setVisibility(filteredLots.isEmpty() ? View.VISIBLE : View.GONE);
                 lotsEmptyStateView.setText(filteredLots.isEmpty()
@@ -739,9 +731,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateSortToggleButton() {
-        lotSortToggleButton.setText(lotSortAscending
-                ? R.string.button_sort_oldest_first
-                : R.string.button_sort_newest_first);
+        if (lotSortToggleButton == null) return;
+        lotSortToggleButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, lotSortAscending
+                ? R.drawable.outline_arrow_upward_alt_24
+                : R.drawable.outline_arrow_downward_alt_24, 0);
     }
 
     private void updateLotPaginationControls(int pageIndex, int totalItems) {
@@ -761,7 +754,7 @@ public class MainActivity extends AppCompatActivity {
     private TableRow createLotsHeaderRow() {
         TableRow row = new TableRow(this);
         row.setBackgroundColor(0xFFE0E0E0);
-        row.addView(createCell(getString(R.string.lot_table_header_date), true));
+        row.addView(createLotSortToggleButton(getString(R.string.lot_table_header_date)));
         row.addView(createCell(getString(R.string.lot_table_header_vegetable), true));
         row.addView(createCell(getString(R.string.lot_table_header_provider), true));
         row.addView(createCell(getString(R.string.lot_table_header_usable), true));
@@ -806,6 +799,39 @@ public class MainActivity extends AppCompatActivity {
             view.setTypeface(view.getTypeface(), android.graphics.Typeface.BOLD);
         }
         return view;
+    }
+
+    private Button createLotSortToggleButton(String text) {
+        Button button = new Button(this);
+        // Remove button styling to match TextView appearance
+        button.setBackground(null);
+        button.setElevation(0);
+        button.setAllCaps(false);
+        button.setTextColor(new TextView(this).getTextColors());
+        button.setMinWidth(0);
+        button.setMinHeight(0);
+        button.setMinimumWidth(0);
+        button.setMinimumHeight(0);
+
+        TableRow.LayoutParams params = new TableRow.LayoutParams(
+                TableRow.LayoutParams.WRAP_CONTENT,
+                TableRow.LayoutParams.WRAP_CONTENT
+        );
+        button.setLayoutParams(params);
+        button.setPadding(dp(12), dp(10), dp(12), dp(10));
+        button.setText(text);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        button.setTypeface(button.getTypeface(), android.graphics.Typeface.BOLD);
+        lotSortToggleButton = button;
+        lotSortToggleButton.setOnClickListener(v -> {
+            lotSortAscending = !lotSortAscending;
+            currentLotPageIndex = 0;
+            updateSortToggleButton();
+            refreshDashboardAsync(currentSelectedLotId, null, null, null, null, true);
+        });
+        updateSortToggleButton();
+
+        return button;
     }
 
     private void renderSelectedLotDetails(LotRecord record) {
