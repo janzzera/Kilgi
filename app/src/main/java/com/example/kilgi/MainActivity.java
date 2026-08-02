@@ -546,6 +546,25 @@ public class MainActivity extends AppCompatActivity {
     ) {
         try {
             List<LotEntity> allLots = repository.getAllLots();
+
+            // Auto-expand date range if specifically looking for a lot that is currently filtered out
+            if (keepTargetLotVisible && !TextUtils.isEmpty(targetLotId)) {
+                LotEntity target = null;
+                for (LotEntity lot : allLots) {
+                    if (lot.lotId.equals(targetLotId)) {
+                        target = lot;
+                        break;
+                    }
+                }
+                if (target != null) {
+                    ActiveLotDateRange currentRange = resolveActiveLotDateRange(allLots);
+                    if (!LotFilterUtils.matchesDateRange(target.timestamp, currentRange.fromMillis, currentRange.toMillis)) {
+                        selectedFromDateMillis = null;
+                        selectedToDateMillis = null;
+                    }
+                }
+            }
+
             ActiveLotDateRange activeDateRange = resolveActiveLotDateRange(allLots);
             List<LotRecord> filteredLots = buildLotRecords(allLots, activeDateRange.fromMillis, activeDateRange.toMillis, lotSortAscending);
             String salesSummary = buildSalesSummaryText();
@@ -701,7 +720,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private LotRecord findRecord(List<LotRecord> records, String lotId) {
-        if (TextUtils.isEmpty(lotId)) {
+        if (TextUtils.isEmpty(lotId) || records == null) {
             return null;
         }
         for (LotRecord record : records) {
@@ -715,9 +734,11 @@ public class MainActivity extends AppCompatActivity {
     private void renderLotsTable(List<LotRecord> filteredLots, String selectedLotId) {
         lotsTableLayout.removeAllViews();
         lotsTableLayout.addView(createLotsHeaderRow());
+        if (filteredLots == null) return;
+
         for (int index = 0; index < filteredLots.size(); index++) {
             LotRecord record = filteredLots.get(index);
-            boolean isSelected = record.details.lot.lotId.equals(selectedLotId);
+            boolean isSelected = TextUtils.equals(record.details.lot.lotId, selectedLotId);
             lotsTableLayout.addView(createLotRow(record, index, isSelected));
         }
     }
