@@ -102,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
     private long resolvedToDateMillis;
     private boolean lotSortAscending;
     private int currentLotPageIndex;
+    private volatile boolean isDashboardRefreshing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -305,18 +306,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCreateLotDialog() {
-        ioExecutor.execute(() -> {
-            List<ProviderEntity> providers = repository.getProviders();
-            runOnUiThread(() -> showCreateLotDialog(providers));
-        });
+        showCreateLotDialog(new ArrayList<>());
     }
 
     private void showCreateLotDialog(List<ProviderEntity> providers) {
-        if (providers == null || providers.isEmpty()) {
-            batchStatusView.setText(R.string.no_providers_available);
-            return;
-        }
-
+        // Optimization: if providers is empty, we still show dialog but it might be in 'loading' state
+        // To fix the hang, we need to ensure this is called correctly.
+        // Let's refactor the dialog trigger to be more robust.
+        
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_lot, null, false);
         Spinner providerSpinner = dialogView.findViewById(R.id.spinner_provider);
         EditText vegetableTypeInput = dialogView.findViewById(R.id.edit_vegetable_type);
@@ -383,6 +380,17 @@ public class MainActivity extends AppCompatActivity {
                 batchStatusView.setText(exception.getMessage());
             }
         }));
+        
+        // If we were called with an empty list, fetch them now
+        if (providers.isEmpty()) {
+            ioExecutor.execute(() -> {
+                List<ProviderEntity> fetched = repository.getProviders();
+                runOnUiThread(() -> {
+                    providerSpinner.setAdapter(buildProviderAdapter(fetched));
+                });
+            });
+        }
+        
         dialog.show();
     }
 
@@ -544,10 +552,13 @@ public class MainActivity extends AppCompatActivity {
             Integer requestedPageIndex,
             boolean keepTargetLotVisible
     ) {
+        if (isDashboardRefreshing) return;
+        isDashboardRefreshing = true;
+
         try {
             List<LotEntity> allLots = repository.getAllLots();
 
-            // Auto-expand date range if specifically looking for a lot that is currently filtered out
+            boolean shouldResetFilter = false;
             if (keepTargetLotVisible && !TextUtils.isEmpty(targetLotId)) {
                 LotEntity target = null;
                 for (LotEntity lot : allLots) {
@@ -559,12 +570,12 @@ public class MainActivity extends AppCompatActivity {
                 if (target != null) {
                     ActiveLotDateRange currentRange = resolveActiveLotDateRange(allLots);
                     if (!LotFilterUtils.matchesDateRange(target.timestamp, currentRange.fromMillis, currentRange.toMillis)) {
-                        selectedFromDateMillis = null;
-                        selectedToDateMillis = null;
+                        shouldResetFilter = true;
                     }
                 }
             }
 
+            final boolean finalShouldResetFilter = shouldResetFilter;
             ActiveLotDateRange activeDateRange = resolveActiveLotDateRange(allLots);
             List<LotRecord> filteredLots = buildLotRecords(allLots, activeDateRange.fromMillis, activeDateRange.toMillis, lotSortAscending);
             String salesSummary = buildSalesSummaryText();
@@ -588,6 +599,10 @@ public class MainActivity extends AppCompatActivity {
                     : batchStatus;
 
             runOnUiThread(() -> {
+                if (finalShouldResetFilter) {
+                    selectedFromDateMillis = null;
+                    selectedToDateMillis = null;
+                }
                 resolvedFromDateMillis = activeDateRange.fromMillis;
                 resolvedToDateMillis = activeDateRange.toMillis;
                 currentLotPageIndex = pageIndex;
@@ -616,6 +631,8 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (Exception exception) {
             postStatuses(exception.getMessage(), exception.getMessage(), exception.getMessage(), exception.getMessage());
+        } finally {
+            isDashboardRefreshing = false;
         }
     }
 
@@ -1063,17 +1080,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showWholesaleInvoiceDialog() {
-        ioExecutor.execute(() -> {
-            List<CustomerEntity> customers = repository.getCustomers();
-            runOnUiThread(() -> showWholesaleInvoiceDialog(customers));
-        });
+        // Show immediately with loading state logic
+        showWholesaleInvoiceDialog(new ArrayList<>());
     }
 
     private void showWholesaleInvoiceDialog(List<CustomerEntity> customers) {
-        if (customers == null || customers.isEmpty()) {
-            salesStatusView.setText(R.string.no_customers_available);
-            return;
-        }
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_wholesale_invoice, null, false);
         Spinner customerSpinner = dialogView.findViewById(R.id.spinner_invoice_customer);
         EditText descriptionInput = dialogView.findViewById(R.id.edit_invoice_description);
@@ -1119,21 +1130,24 @@ public class MainActivity extends AppCompatActivity {
                 salesStatusView.setText(exception.getMessage());
             }
         }));
+        
+        if (customers.isEmpty()) {
+            ioExecutor.execute(() -> {
+                List<CustomerEntity> fetched = repository.getCustomers();
+                runOnUiThread(() -> {
+                    customerSpinner.setAdapter(buildCustomerAdapter(fetched));
+                });
+            });
+        }
+        
         dialog.show();
     }
 
     private void showCustomerCollectionDialog() {
-        ioExecutor.execute(() -> {
-            List<CustomerEntity> customers = repository.getCustomers();
-            runOnUiThread(() -> showCustomerCollectionDialog(customers));
-        });
+        showCustomerCollectionDialog(new ArrayList<>());
     }
 
     private void showCustomerCollectionDialog(List<CustomerEntity> customers) {
-        if (customers == null || customers.isEmpty()) {
-            salesStatusView.setText(R.string.no_customers_available);
-            return;
-        }
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_collect_customer_payment, null, false);
         Spinner customerSpinner = dialogView.findViewById(R.id.spinner_collection_customer);
         TextView breakdownView = dialogView.findViewById(R.id.text_customer_collection_breakdown);
@@ -1179,21 +1193,24 @@ public class MainActivity extends AppCompatActivity {
                 salesStatusView.setText(exception.getMessage());
             }
         }));
+        
+        if (customers.isEmpty()) {
+            ioExecutor.execute(() -> {
+                List<CustomerEntity> fetched = repository.getCustomers();
+                runOnUiThread(() -> {
+                    customerSpinner.setAdapter(buildCustomerAdapter(fetched));
+                });
+            });
+        }
+        
         dialog.show();
     }
 
     private void showProviderSettlementDialog() {
-        ioExecutor.execute(() -> {
-            List<ProviderEntity> providers = repository.getProviders();
-            runOnUiThread(() -> showProviderSettlementDialog(providers));
-        });
+        showProviderSettlementDialog(new ArrayList<>());
     }
 
     private void showProviderSettlementDialog(List<ProviderEntity> providers) {
-        if (providers == null || providers.isEmpty()) {
-            salesStatusView.setText(R.string.no_providers_available);
-            return;
-        }
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_settle_provider_payment, null, false);
         Spinner providerSpinner = dialogView.findViewById(R.id.spinner_settlement_provider);
         TextView breakdownView = dialogView.findViewById(R.id.text_provider_settlement_breakdown);
@@ -1239,6 +1256,16 @@ public class MainActivity extends AppCompatActivity {
                 salesStatusView.setText(exception.getMessage());
             }
         }));
+        
+        if (providers.isEmpty()) {
+            ioExecutor.execute(() -> {
+                List<ProviderEntity> fetched = repository.getProviders();
+                runOnUiThread(() -> {
+                    providerSpinner.setAdapter(buildProviderAdapter(fetched));
+                });
+            });
+        }
+        
         dialog.show();
     }
 
@@ -1464,4 +1491,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-
