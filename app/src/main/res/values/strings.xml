@@ -173,6 +173,11 @@
     <string name="no_journal_placeholder">No journal entries available for the selected period.</string>
     <string name="no_sellable_inventory">N/A - no sellable inventory left</string>
 
+    <string name="dialog_delete_lot_title">Delete Lot?</string>
+    <string name="dialog_delete_lot_message">Are you sure you want to delete lot %1$s? This will also remove all associated expenses and journal entries. This action cannot be undone.</string>
+    <string name="lot_deleted_message">Lot %1$s and associated data deleted.</string>
+    <string name="dialog_delete">Delete</string>
+
     <string name="journal_summary_title">Account Summaries (T-Accounts)</string>
     <string name="journal_summary_caption">Summarized ledger activity for the period. Each T-account shows transactions that impacted that specific account during this month.</string>
     <string name="trial_balance_title">Period Trial Balance</string>

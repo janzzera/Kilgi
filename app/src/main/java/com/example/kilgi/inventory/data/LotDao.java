@@ -25,5 +25,8 @@ public interface LotDao {
     @Transaction
     @Query("SELECT * FROM lots WHERE lotId = :lotId AND userId = :userId LIMIT 1")
     LotWithDetails getLotWithDetails(String lotId, String userId);
+
+    @Query("DELETE FROM lots WHERE lotId = :lotId")
+    void deleteById(String lotId);
 }
 

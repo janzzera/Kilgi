@@ -152,6 +152,15 @@ public class ModuleOneRepository {
         return lot;
     }
 
+    public void deleteLot(String lotId) {
+        validateRequiredText(lotId, "Lot ID");
+        database.runInTransaction(() -> {
+            // Expenses and Spoilage logs are deleted by FK CASCADE in the DB
+            journalDao.deleteByLotId(lotId);
+            lotDao.deleteById(lotId);
+        });
+    }
+
     public BatchExpenseEntity addExpense(String lotId, AccountingAccount expenseAccount, double amount, PaymentSource paymentSource) {
         LotEntity lot = requireLot(lotId);
         if (expenseAccount == null) {

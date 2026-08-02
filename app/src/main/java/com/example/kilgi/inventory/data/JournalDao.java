@@ -33,5 +33,8 @@ public interface JournalDao {
 
     @Query("SELECT MAX(timestamp) FROM journal_entries WHERE userId = :userId")
     Long getLatestEntryTimestamp(String userId);
+
+    @Query("DELETE FROM journal_entries WHERE lotId = :lotId")
+    void deleteByLotId(String lotId);
 }
 

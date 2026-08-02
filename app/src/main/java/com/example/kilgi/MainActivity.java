@@ -811,6 +811,10 @@ public class MainActivity extends AppCompatActivity {
                 null,
                 null
         ));
+        row.setOnLongClickListener(v -> {
+            showDeleteLotConfirmation(record.details.lot.lotId);
+            return true;
+        });
 
         row.addView(createCell(dateFormat.format(record.details.lot.timestamp)
                 .replaceAll(",?\\s*\\b\\d{4}\\b", "")
@@ -932,6 +936,25 @@ public class MainActivity extends AppCompatActivity {
     private void updateLotActionButtons(boolean hasSelectedLot) {
         addExpenseButton.setEnabled(hasSelectedLot);
         logSpoilageButton.setEnabled(hasSelectedLot);
+    }
+
+    private void showDeleteLotConfirmation(String lotId) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_delete_lot_title)
+                .setMessage(getString(R.string.dialog_delete_lot_message, abbreviateLotId(lotId)))
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .setPositiveButton(R.string.dialog_delete, (dialog, which) -> {
+                    ioExecutor.execute(() -> {
+                        try {
+                            repository.deleteLot(lotId);
+                            String message = getString(R.string.lot_deleted_message, abbreviateLotId(lotId));
+                            refreshDashboardOnWorker(null, message, null, null, null, null, false);
+                        } catch (Exception exception) {
+                            postStatuses(exception.getMessage(), null, null, null);
+                        }
+                    });
+                })
+                .show();
     }
 
     private void postStatuses(String batchStatus, String expenseStatus, String spoilageStatus, String salesStatus) {
