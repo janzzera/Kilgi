@@ -353,6 +353,54 @@ public final class JournalEntryFactory {
         return new LedgerEntryDraft(entry, lines);
     }
 
+    public static LedgerEntryDraft buildAdjustingEntry(
+            String userId,
+            long timestamp,
+            AccountingAccount debitAccount,
+            AccountingAccount creditAccount,
+            double amount,
+            String memo
+    ) {
+        JournalEntryEntity entry = new JournalEntryEntity(
+                UUID.randomUUID().toString(),
+                userId,
+                null,
+                "ADJUSTMENT",
+                null,
+                "MANUAL_ADJUSTING_ENTRY",
+                memo,
+                timestamp
+        );
+
+        List<JournalLineEntity> lines = new ArrayList<>();
+        lines.add(line(
+                entry.entryId,
+                null,
+                debitAccount.getCode(),
+                debitAccount.getName(),
+                JournalLineType.DEBIT,
+                amount,
+                null,
+                null,
+                null,
+                memo
+        ));
+        lines.add(line(
+                entry.entryId,
+                null,
+                creditAccount.getCode(),
+                creditAccount.getName(),
+                JournalLineType.CREDIT,
+                amount,
+                null,
+                null,
+                null,
+                memo
+        ));
+
+        return new LedgerEntryDraft(entry, lines);
+    }
+
     private static JournalLineEntity paymentLine(
             String entryId,
             String lotId,

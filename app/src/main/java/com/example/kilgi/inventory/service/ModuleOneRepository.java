@@ -357,6 +357,19 @@ public class ModuleOneRepository {
         return new ProviderSettlementResult(payment, allocations);
     }
 
+    public void postManualAdjustment(long timestamp, AccountingAccount debit, AccountingAccount credit, double amount, String memo) {
+        String userId = ensureLocalUserExists();
+        validatePositiveAmount(amount, "Adjustment amount");
+        validateRequiredText(memo, "Memo/Description");
+        if (debit == null || credit == null) {
+            throw new IllegalArgumentException("Debit and Credit accounts are required.");
+        }
+
+        database.runInTransaction(() -> {
+            persistJournalDraft(JournalEntryFactory.buildAdjustingEntry(userId, timestamp, debit, credit, amount, memo));
+        });
+    }
+
     public List<ProviderEntity> getProviders() {
         String userId = ensureLocalUserExists();
         List<ProviderEntity> providers = providerDao.getActiveProvidersForUser(userId);

@@ -1,12 +1,15 @@
 package com.example.kilgi;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -15,6 +18,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -29,8 +33,10 @@ import com.example.kilgi.inventory.data.JournalLineEntity;
 import com.example.kilgi.inventory.data.JournalLineType;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.LotEntity;
+import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.service.ModuleOneRepository;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.DateFormat;
 import java.text.DateFormatSymbols;
@@ -184,10 +190,13 @@ public class JournalActivity extends AppCompatActivity {
 
     private void bindActions() {
         Button loadJournalButton = findViewById(R.id.button_load_journal);
+        Button addAdjustmentButton = findViewById(R.id.button_add_journal_adjustment);
+        
         loadJournalButton.setOnClickListener(v -> {
             currentJournalPageIndex = 0;
             loadSelectedJournal();
         });
+        addAdjustmentButton.setOnClickListener(v -> showAddAdjustmentDialog());
         previousJournalPageButton.setOnClickListener(v -> loadJournalPage(currentJournalPageIndex - 1));
         nextJournalPageButton.setOnClickListener(v -> loadJournalPage(currentJournalPageIndex + 1));
     }
@@ -558,6 +567,67 @@ public class JournalActivity extends AppCompatActivity {
         }
 
         trialBalanceTable.addView(createTrialBalanceTotalsRow(trialBalance.totalDebits, trialBalance.totalCredits));
+    }
+
+    private void showAddAdjustmentDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_adjustment, null);
+        Button dateButton = dialogView.findViewById(R.id.button_adjustment_date);
+        Spinner debitSpinner = dialogView.findViewById(R.id.spinner_debit_account);
+        Spinner creditSpinner = dialogView.findViewById(R.id.spinner_credit_account);
+        EditText amountInput = dialogView.findViewById(R.id.edit_adjustment_amount);
+        EditText memoInput = dialogView.findViewById(R.id.edit_adjustment_memo);
+
+        final Calendar calendar = Calendar.getInstance();
+        dateButton.setText(dateTimeFormat.format(calendar.getTimeInMillis()));
+        dateButton.setOnClickListener(v -> {
+            new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+                calendar.set(year, month, dayOfMonth);
+                dateButton.setText(dateTimeFormat.format(calendar.getTimeInMillis()));
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        List<AccountingAccount> allAccounts = AccountingCatalog.getAllAccounts();
+        ArrayAdapter<AccountingAccount> accountAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, allAccounts);
+        accountAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        debitSpinner.setAdapter(accountAdapter);
+        creditSpinner.setAdapter(accountAdapter);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_add_adjustment_title)
+                .setView(dialogView)
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .setPositiveButton(R.string.dialog_save, null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            try {
+                AccountingAccount debit = (AccountingAccount) debitSpinner.getSelectedItem();
+                AccountingAccount credit = (AccountingAccount) creditSpinner.getSelectedItem();
+                double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Adjustment amount");
+                String memo = InventoryInputParser.requireText(memoInput.getText().toString(), "Memo");
+
+                if (debit.getCode().equals(credit.getCode())) {
+                    throw new IllegalArgumentException("Debit and Credit accounts must be different.");
+                }
+
+                ioExecutor.execute(() -> {
+                    try {
+                        repository.postManualAdjustment(calendar.getTimeInMillis(), debit, credit, amount, memo);
+                        runOnUiThread(() -> {
+                            dialog.dismiss();
+                            journalStatusView.setText(R.string.adjustment_posted_message);
+                            loadSelectedJournal();
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> journalStatusView.setText(e.getMessage()));
+                    }
+                });
+            } catch (Exception e) {
+                journalStatusView.setText(e.getMessage());
+            }
+        }));
+
+        dialog.show();
     }
 
     private TableRow createTrialBalanceHeaderRow() {

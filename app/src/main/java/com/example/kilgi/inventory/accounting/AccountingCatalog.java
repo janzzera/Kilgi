@@ -38,6 +38,30 @@ public final class AccountingCatalog {
             AccountingAccount.Category.ASSET,
             JournalLineType.DEBIT
     );
+    public static final AccountingAccount ALLOWANCE_FOR_DOUBTFUL_ACCOUNTS = account(
+            "10310",
+            "Allowance for Doubtful Accounts",
+            AccountingAccount.Category.ASSET,
+            JournalLineType.CREDIT
+    );
+    public static final AccountingAccount PREPAID_RENT = account(
+            "10500",
+            "Prepaid Rent",
+            AccountingAccount.Category.ASSET,
+            JournalLineType.DEBIT
+    );
+    public static final AccountingAccount DELIVERY_EQUIPMENT = account(
+            "11600",
+            "Delivery Equipment",
+            AccountingAccount.Category.ASSET,
+            JournalLineType.DEBIT
+    );
+    public static final AccountingAccount ACCUMULATED_DEPRECIATION = account(
+            "11610",
+            "Accumulated Depreciation - Delivery Equipment",
+            AccountingAccount.Category.ASSET,
+            JournalLineType.CREDIT
+    );
 
     public static final AccountingAccount ACCOUNTS_PAYABLE = account(
             "20100",
@@ -48,6 +72,18 @@ public final class AccountingCatalog {
     public static final AccountingAccount NOTES_PAYABLE = account(
             "20200",
             "Notes Payable",
+            AccountingAccount.Category.LIABILITY,
+            JournalLineType.CREDIT
+    );
+    public static final AccountingAccount SALARIES_PAYABLE = account(
+            "20300",
+            "Salaries Payable",
+            AccountingAccount.Category.LIABILITY,
+            JournalLineType.CREDIT
+    );
+    public static final AccountingAccount INTEREST_PAYABLE = account(
+            "20400",
+            "Interest Payable",
             AccountingAccount.Category.LIABILITY,
             JournalLineType.CREDIT
     );
@@ -163,6 +199,24 @@ public final class AccountingCatalog {
             AccountingAccount.Category.EXPENSE,
             JournalLineType.DEBIT
     );
+    public static final AccountingAccount DEPRECIATION_EXPENSE = account(
+            "60900",
+            "Depreciation Expense",
+            AccountingAccount.Category.EXPENSE,
+            JournalLineType.DEBIT
+    );
+    public static final AccountingAccount BAD_DEBTS_EXPENSE = account(
+            "61000",
+            "Bad Debts Expense",
+            AccountingAccount.Category.EXPENSE,
+            JournalLineType.DEBIT
+    );
+    public static final AccountingAccount INTEREST_EXPENSE = account(
+            "61100",
+            "Interest Expense",
+            AccountingAccount.Category.EXPENSE,
+            JournalLineType.DEBIT
+    );
 
     public static final String CASH_CODE = CASH_IN_BANK.getCode();
     public static final String CASH_NAME = CASH_IN_BANK.getName();
@@ -197,10 +251,16 @@ public final class AccountingCatalog {
     private static final List<AccountingAccount> ALL_ACCOUNTS = Collections.unmodifiableList(Arrays.asList(
             CASH_IN_BANK,
             ACCOUNTS_RECEIVABLE,
+            ALLOWANCE_FOR_DOUBTFUL_ACCOUNTS,
+            PREPAID_RENT,
             OFFICE_EQUIPMENT,
+            DELIVERY_EQUIPMENT,
+            ACCUMULATED_DEPRECIATION,
             INVENTORY,
             ACCOUNTS_PAYABLE,
             NOTES_PAYABLE,
+            SALARIES_PAYABLE,
+            INTEREST_PAYABLE,
             CAPITAL,
             DRAWING,
             SALES,
@@ -218,7 +278,10 @@ public final class AccountingCatalog {
             ADVERTISING_EXPENSE,
             SALARIES_EXPENSE,
             SUPPLIES_EXPENSE,
-            INVENTORY_LOSS
+            INVENTORY_LOSS,
+            DEPRECIATION_EXPENSE,
+            BAD_DEBTS_EXPENSE,
+            INTEREST_EXPENSE
     ));
 
     private static final Map<String, AccountingAccount> ACCOUNTS_BY_CODE = buildAccountsByCode();

@@ -178,6 +178,15 @@
     <string name="lot_deleted_message">Lot %1$s and associated data deleted.</string>
     <string name="dialog_delete">Delete</string>
 
+    <string name="button_add_journal_adjustment">Add Adjustment</string>
+    <string name="dialog_add_adjustment_title">Manual Adjusting Entry</string>
+    <string name="label_debit_account">Debit Account</string>
+    <string name="label_credit_account">Credit Account</string>
+    <string name="label_adjustment_date">Date of Adjustment</string>
+    <string name="hint_adjustment_amount">Amount (balanced Dr/Cr)</string>
+    <string name="hint_adjustment_memo">Memo (e.g. Accrued salaries)</string>
+    <string name="adjustment_posted_message">Adjusting entry posted successfully.</string>
+
     <string name="journal_summary_title">Account Summaries (T-Accounts)</string>
     <string name="journal_summary_caption">Summarized ledger activity for the period. Each T-account shows transactions that impacted that specific account during this month.</string>
     <string name="trial_balance_title">Period Trial Balance</string>
