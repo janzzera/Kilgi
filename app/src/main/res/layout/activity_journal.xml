@@ -170,17 +170,51 @@
                 android:text="@string/no_journal_placeholder"
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-            <HorizontalScrollView
+            <!-- Journal Pagination Controls -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/button_previous_journal_page"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/button_previous_journal_page"
+                    android:textAllCaps="false" />
+
+                <TextView
+                    android:id="@+id/text_journal_page_summary"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/journal_page_summary_empty"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                <Button
+                    android:id="@+id/button_next_journal_page"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/button_next_journal_page"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:fillViewport="true">
 
                 <TableLayout
                     android:id="@+id/table_journal_entries"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:stretchColumns="2,3,4,5,6" />
+                    android:stretchColumns="1,2,3" />
             </HorizontalScrollView>
 
             <!-- T-Accounts Section -->

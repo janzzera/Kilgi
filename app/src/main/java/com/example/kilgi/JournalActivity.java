@@ -45,9 +45,10 @@ import java.util.concurrent.Executors;
 public class JournalActivity extends AppCompatActivity {
 
     public static final String EXTRA_LOT_ID = "com.example.kilgi.extra.LOT_ID";
+    private static final int JOURNAL_PAGE_SIZE = 15;
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "PH"));
-    private final DateFormat dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault());
+    private final DateFormat dateTimeFormat = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault());
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
     private MaterialToolbar topAppBar;
@@ -61,6 +62,10 @@ public class JournalActivity extends AppCompatActivity {
     private TableLayout journalEntriesTable;
     private LinearLayout tAccountsLayout;
     private TableLayout trialBalanceTable;
+    private Button previousJournalPageButton;
+    private Button nextJournalPageButton;
+    private TextView journalPageSummaryView;
+    private Button journalSortToggleButton;
 
     private ModuleOneRepository repository;
     private String initialLotId;
@@ -68,6 +73,8 @@ public class JournalActivity extends AppCompatActivity {
     private ArrayAdapter<Integer> yearAdapter;
     private final List<Integer> yearOptions = new ArrayList<>();
     private boolean hasResumedOnce;
+    private boolean journalSortAscending;
+    private int currentJournalPageIndex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +125,9 @@ public class JournalActivity extends AppCompatActivity {
         journalEntriesTable = findViewById(R.id.table_journal_entries);
         tAccountsLayout = findViewById(R.id.layout_t_accounts);
         trialBalanceTable = findViewById(R.id.table_trial_balance);
+        previousJournalPageButton = findViewById(R.id.button_previous_journal_page);
+        nextJournalPageButton = findViewById(R.id.button_next_journal_page);
+        journalPageSummaryView = findViewById(R.id.text_journal_page_summary);
     }
 
     private void setupTopAppBar() {
@@ -174,18 +184,40 @@ public class JournalActivity extends AppCompatActivity {
 
     private void bindActions() {
         Button loadJournalButton = findViewById(R.id.button_load_journal);
-        loadJournalButton.setOnClickListener(v -> loadSelectedJournal());
+        loadJournalButton.setOnClickListener(v -> {
+            currentJournalPageIndex = 0;
+            loadSelectedJournal();
+        });
+        previousJournalPageButton.setOnClickListener(v -> loadJournalPage(currentJournalPageIndex - 1));
+        nextJournalPageButton.setOnClickListener(v -> loadJournalPage(currentJournalPageIndex + 1));
+    }
+
+    private void loadJournalPage(int pageIndex) {
+        int monthOfYear = monthSpinner.getSelectedItemPosition() + 1;
+        Integer selectedYear = (Integer) yearSpinner.getSelectedItem();
+        int year = selectedYear == null ? Calendar.getInstance().get(Calendar.YEAR) : selectedYear;
+        ioExecutor.execute(() -> refreshJournalOnWorker(
+                monthOfYear,
+                year,
+                null,
+                getMinAvailableYear(),
+                getMaxAvailableYear(),
+                pageIndex
+        ));
     }
 
     private void loadInitialJournal() {
         ioExecutor.execute(() -> {
             PeriodSelection selection = resolveInitialPeriodSelection();
+            journalSortAscending = false;
+            currentJournalPageIndex = 0;
             refreshJournalOnWorker(
                     selection.monthOfYear,
                     selection.year,
                     getString(R.string.journal_status_loaded, formatPeriodLabel(selection.monthOfYear, selection.year)),
                     selection.minYear,
-                    selection.maxYear
+                    selection.maxYear,
+                    0
             );
         });
     }
@@ -199,7 +231,8 @@ public class JournalActivity extends AppCompatActivity {
                 year,
                 getString(R.string.journal_status_loaded, formatPeriodLabel(monthOfYear, year)),
                 getMinAvailableYear(),
-                getMaxAvailableYear()
+                getMaxAvailableYear(),
+                currentJournalPageIndex
         ));
     }
 
@@ -213,7 +246,6 @@ public class JournalActivity extends AppCompatActivity {
                     selectedCalendar.setTimeInMillis(lot.timestamp);
                 }
             } catch (Exception ignored) {
-                // Fall back to the latest recorded period or the current date.
             }
         } else {
             LotEntity latestLot = repository.getLatestLot();
@@ -240,26 +272,39 @@ public class JournalActivity extends AppCompatActivity {
         );
     }
 
-    private void refreshJournalOnWorker(int monthOfYear, int year, String statusMessage, int minYear, int maxYear) {
+    private void refreshJournalOnWorker(int monthOfYear, int year, String statusMessage, int minYear, int maxYear, int requestedPageIndex) {
         try {
-            List<JournalEntryWithLines> entries = repository.getJournalEntriesForPeriod(monthOfYear, year);
+            List<JournalEntryWithLines> allEntries = repository.getJournalEntriesForPeriod(monthOfYear, year);
             List<JournalEntryWithLines> allEntriesUpTo = repository.getJournalEntriesUpTo(monthOfYear, year);
             
-            List<JournalRow> rows = buildJournalRows(entries);
-            List<AccountingSummaryService.TAccount> tAccounts = AccountingSummaryService.calculateTAccounts(entries);
+            allEntries.sort((a, b) -> {
+                int cmp = Long.compare(a.entry.timestamp, b.entry.timestamp);
+                return journalSortAscending ? cmp : -cmp;
+            });
+
+            int pageIndex = clampPageIndex(requestedPageIndex, allEntries.size());
+            List<JournalEntryWithLines> pagedEntries = paginateJournalEntries(allEntries, pageIndex);
+            List<JournalRow> rows = buildJournalRows(pagedEntries);
+
+            List<AccountingSummaryService.TAccount> tAccounts = AccountingSummaryService.calculateTAccounts(allEntries);
             AccountingSummaryService.TrialBalance trialBalance = AccountingSummaryService.calculateTrialBalance(allEntriesUpTo);
 
             String periodLabel = formatPeriodLabel(monthOfYear, year);
-            String summary = getString(R.string.journal_period_summary, periodLabel, entries.size(), rows.size());
+            String summary = getString(R.string.journal_period_summary, periodLabel, allEntries.size(), allEntries.size());
 
             runOnUiThread(() -> {
                 updateYearOptions(minYear, maxYear, year);
                 monthSpinner.setSelection(monthOfYear - 1);
+                currentJournalPageIndex = pageIndex;
+                
                 journalStatusView.setText(statusMessage == null
                         ? getString(R.string.journal_status_idle)
                         : statusMessage);
                 journalPeriodSummaryView.setText(summary);
+                
+                updateJournalPaginationControls(pageIndex, allEntries.size());
                 renderJournalTable(rows);
+                updateSortToggleButton();
                 renderTAccounts(tAccounts);
                 renderTrialBalance(trialBalance);
             });
@@ -270,8 +315,47 @@ public class JournalActivity extends AppCompatActivity {
                 renderJournalTable(null);
                 renderTAccounts(null);
                 renderTrialBalance(null);
+                updateJournalPaginationControls(0, 0);
             });
         }
+    }
+
+    private int clampPageIndex(int requestedPageIndex, int totalItems) {
+        int totalPages = getTotalPages(totalItems);
+        if (totalPages <= 0) return 0;
+        return Math.max(0, Math.min(requestedPageIndex, totalPages - 1));
+    }
+
+    private int getTotalPages(int totalItems) {
+        return totalItems <= 0 ? 0 : ((totalItems - 1) / JOURNAL_PAGE_SIZE) + 1;
+    }
+
+    private List<JournalEntryWithLines> paginateJournalEntries(List<JournalEntryWithLines> allEntries, int pageIndex) {
+        if (allEntries.isEmpty()) return new ArrayList<>();
+        int startIndex = pageIndex * JOURNAL_PAGE_SIZE;
+        int endIndex = Math.min(allEntries.size(), startIndex + JOURNAL_PAGE_SIZE);
+        return new ArrayList<>(allEntries.subList(startIndex, endIndex));
+    }
+
+    private void updateJournalPaginationControls(int pageIndex, int totalItems) {
+        int totalPages = getTotalPages(totalItems);
+        if (totalPages <= 0) {
+            journalPageSummaryView.setText(R.string.journal_page_summary_empty);
+            previousJournalPageButton.setEnabled(false);
+            nextJournalPageButton.setEnabled(false);
+            return;
+        }
+
+        journalPageSummaryView.setText(getString(R.string.journal_page_summary, pageIndex + 1, totalPages));
+        previousJournalPageButton.setEnabled(pageIndex > 0);
+        nextJournalPageButton.setEnabled(pageIndex < totalPages - 1);
+    }
+
+    private void updateSortToggleButton() {
+        if (journalSortToggleButton == null) return;
+        journalSortToggleButton.setCompoundDrawablesWithIntrinsicBounds(0, 0, journalSortAscending
+                ? R.drawable.outline_arrow_upward_alt_24
+                : R.drawable.outline_arrow_downward_alt_24, 0);
     }
 
     private void renderJournalTable(List<JournalRow> rows) {
@@ -291,13 +375,10 @@ public class JournalActivity extends AppCompatActivity {
     private TableRow createJournalHeaderRow() {
         TableRow row = new TableRow(this);
         row.setBackgroundColor(0xFFE0E0E0);
-        row.addView(createJournalCell(getString(R.string.journal_table_header_date), true));
-        row.addView(createJournalCell(getString(R.string.journal_table_header_lot), true));
-        row.addView(createJournalCell(getString(R.string.journal_table_header_event), true));
+        row.addView(createJournalSortToggleButton(getString(R.string.journal_table_header_date)));
         row.addView(createJournalCell(getString(R.string.journal_table_header_account), true));
         row.addView(createJournalCell(getString(R.string.journal_table_header_debit), true));
         row.addView(createJournalCell(getString(R.string.journal_table_header_credit), true));
-        row.addView(createJournalCell(getString(R.string.journal_table_header_details), true));
         return row;
     }
 
@@ -305,13 +386,42 @@ public class JournalActivity extends AppCompatActivity {
         TableRow row = new TableRow(this);
         row.setBackgroundColor(index % 2 == 0 ? 0xFFF8F8F8 : 0xFFFFFFFF);
         row.addView(createJournalCell(rowData.dateTimeLabel, false));
-        row.addView(createJournalCell(rowData.lotLabel, false));
-        row.addView(createJournalCell(rowData.eventLabel, false));
         row.addView(createJournalCell(rowData.accountLabel, false));
         row.addView(createJournalCell(rowData.debitLabel, false));
         row.addView(createJournalCell(rowData.creditLabel, false));
-        row.addView(createJournalCell(rowData.detailsLabel, false));
         return row;
+    }
+
+    private Button createJournalSortToggleButton(String text) {
+        Button button = new Button(this);
+        button.setBackground(null);
+        button.setElevation(0);
+        button.setAllCaps(false);
+        button.setTextColor(new TextView(this).getTextColors());
+        button.setMinWidth(0);
+        button.setMinHeight(0);
+        button.setMinimumWidth(0);
+        button.setMinimumHeight(0);
+
+        TableRow.LayoutParams params = new TableRow.LayoutParams(
+                TableRow.LayoutParams.WRAP_CONTENT,
+                TableRow.LayoutParams.WRAP_CONTENT
+        );
+        button.setLayoutParams(params);
+        button.setPadding(dp(12), dp(10), dp(12), dp(10));
+        button.setText(text);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        button.setTypeface(button.getTypeface(), android.graphics.Typeface.BOLD);
+        journalSortToggleButton = button;
+        journalSortToggleButton.setOnClickListener(v -> {
+            journalSortAscending = !journalSortAscending;
+            currentJournalPageIndex = 0;
+            updateSortToggleButton();
+            loadSelectedJournal();
+        });
+        updateSortToggleButton();
+
+        return button;
     }
 
     private void renderTAccounts(List<AccountingSummaryService.TAccount> tAccounts) {
@@ -337,7 +447,6 @@ public class JournalActivity extends AppCompatActivity {
         cardParams.setMargins(0, 0, 0, dp(16));
         card.setLayoutParams(cardParams);
 
-        // Header: Account Name & Code
         TextView title = new TextView(this);
         title.setText(getString(R.string.journal_line_account, account.accountCode, account.accountName));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
@@ -345,18 +454,15 @@ public class JournalActivity extends AppCompatActivity {
         title.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         card.addView(title);
 
-        // Horizontal T-line
         View hLine = new View(this);
         hLine.setBackgroundColor(0xFF000000);
         LinearLayout.LayoutParams hLineParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(2));
         hLineParams.setMargins(0, dp(8), 0, 0);
         card.addView(hLine, hLineParams);
 
-        // Columns Layout
         LinearLayout colsLayout = new LinearLayout(this);
         colsLayout.setOrientation(LinearLayout.HORIZONTAL);
 
-        // Debit Column
         LinearLayout debitCol = new LinearLayout(this);
         debitCol.setOrientation(LinearLayout.VERTICAL);
         debitCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -375,13 +481,11 @@ public class JournalActivity extends AppCompatActivity {
             debitCol.addView(lineView);
         }
 
-        // Vertical T-line
         View vLine = new View(this);
         vLine.setBackgroundColor(0xFF000000);
         colsLayout.addView(debitCol);
         colsLayout.addView(vLine, new LinearLayout.LayoutParams(dp(2), LinearLayout.LayoutParams.MATCH_PARENT));
 
-        // Credit Column
         LinearLayout creditCol = new LinearLayout(this);
         creditCol.setOrientation(LinearLayout.VERTICAL);
         creditCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -404,7 +508,6 @@ public class JournalActivity extends AppCompatActivity {
 
         card.addView(colsLayout);
 
-        // Footer: Activity Totals
         View footerLine = new View(this);
         footerLine.setBackgroundColor(0xFFCCCCCC);
         card.addView(footerLine, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
@@ -430,7 +533,6 @@ public class JournalActivity extends AppCompatActivity {
         summaryLayout.addView(creditTotal);
         card.addView(summaryLayout);
 
-        // Net Balance
         double net = account.getNetBalance();
         TextView netView = new TextView(this);
         String direction = net >= 0 ? "(Dr)" : "(Cr)";
@@ -511,18 +613,14 @@ public class JournalActivity extends AppCompatActivity {
         for (int entryIndex = 0; entryIndex < entries.size(); entryIndex++) {
             JournalEntryWithLines entryWithLines = entries.get(entryIndex);
             JournalEntryEntity entry = entryWithLines.entry;
-            if (entry == null) {
-                continue;
-            }
+            if (entry == null) continue;
+            
             if (entryWithLines.lines == null || entryWithLines.lines.isEmpty()) {
                 rows.add(new JournalRow(
-                        dateTimeFormat.format(entry.timestamp),
-                        resolveEntryReferenceLabel(entry),
-                        entry.eventType,
+                        formatDate(entry.timestamp),
                         "-",
                         "-",
-                        "-",
-                        entry.description
+                        "-"
                 ));
                 continue;
             }
@@ -530,69 +628,27 @@ public class JournalActivity extends AppCompatActivity {
                 JournalLineEntity line = entryWithLines.lines.get(lineIndex);
                 boolean isDebit = isDebitLine(line);
                 rows.add(new JournalRow(
-                        dateTimeFormat.format(entry.timestamp),
-                        resolveEntryReferenceLabel(entry),
-                        entry.eventType,
+                        formatDate(entry.timestamp),
                         getString(R.string.journal_line_account, line.accountCode, resolveAccountName(line)),
                         isDebit ? currencyFormat.format(line.amount) : "-",
-                        isDebit ? "-" : currencyFormat.format(line.amount),
-                        buildRowDetails(entry, line)
+                        isDebit ? "-" : currencyFormat.format(line.amount)
                 ));
             }
         }
         return rows;
     }
 
-    private String buildRowDetails(JournalEntryEntity entry, JournalLineEntity line) {
-        StringBuilder builder = new StringBuilder();
-        if (!TextUtils.isEmpty(entry.description)) {
-            builder.append(entry.description.trim());
-        }
-        String lineDetails = buildLineDetails(line);
-        if (!TextUtils.isEmpty(lineDetails)) {
-            appendSeparator(builder);
-            builder.append(lineDetails);
-        }
-        return builder.toString();
-    }
-
-    private String buildLineDetails(JournalLineEntity line) {
-        StringBuilder builder = new StringBuilder();
-        if (!TextUtils.isEmpty(line.memo)) {
-            builder.append(line.memo.trim());
-        }
-        if (!TextUtils.isEmpty(line.paymentSource)) {
-            appendSeparator(builder);
-            builder.append(getString(R.string.journal_line_payment_source, line.paymentSource));
-        }
-        if (!TextUtils.isEmpty(line.providerId)) {
-            appendSeparator(builder);
-            builder.append(getString(R.string.journal_line_provider, line.providerId));
-        }
-        if (!TextUtils.isEmpty(line.customerId)) {
-            appendSeparator(builder);
-            builder.append(getString(R.string.journal_line_customer, line.customerId));
-        }
-        return builder.toString();
-    }
-
-    private String resolveEntryReferenceLabel(JournalEntryEntity entry) {
-        if (entry == null) {
-            return "-";
-        }
-        if (!TextUtils.isEmpty(entry.lotId)) {
-            return abbreviateLotId(entry.lotId);
-        }
-        if (!TextUtils.isEmpty(entry.referenceId)) {
-            return entry.referenceType + " • " + abbreviateLotId(entry.referenceId);
-        }
-        return "-";
+    private String formatDate(long timestamp) {
+        return dateTimeFormat.format(timestamp)
+                .replaceAll(",?\\s*\\b\\d{4}\\b", "")
+                .replaceAll("\\b\\d{4}\\b\\s*\\.?", "")
+                .trim();
     }
 
     private boolean isDebitLine(JournalLineEntity line) {
         try {
             return JournalLineType.valueOf(line.lineType) == JournalLineType.DEBIT;
-        } catch (IllegalArgumentException | NullPointerException exception) {
+        } catch (Exception exception) {
             return false;
         }
     }
@@ -612,12 +668,10 @@ public class JournalActivity extends AppCompatActivity {
 
     private void appendCategorySection(StringBuilder builder, AccountingAccount.Category category) {
         List<AccountingAccount> accounts = AccountingCatalog.getAccountsByCategory(category);
-        if (accounts.isEmpty()) {
-            return;
-        }
-        if (builder.length() > 0) {
-            builder.append("\n\n");
-        }
+        if (accounts.isEmpty()) return;
+        
+        if (builder.length() > 0) builder.append("\n\n");
+        
         builder.append(getString(R.string.journal_chart_category, category.getDisplayName()));
         for (AccountingAccount account : accounts) {
             builder.append("\n");
@@ -634,12 +688,6 @@ public class JournalActivity extends AppCompatActivity {
         return normalBalance == JournalLineType.DEBIT
                 ? getString(R.string.journal_chart_normal_debit)
                 : getString(R.string.journal_chart_normal_credit);
-    }
-
-    private void appendSeparator(StringBuilder builder) {
-        if (builder.length() > 0) {
-            builder.append(" • ");
-        }
     }
 
     private void updateYearOptions(int minYear, int maxYear, int selectedYear) {
@@ -677,13 +725,6 @@ public class JournalActivity extends AppCompatActivity {
         return monthLabel + " " + year;
     }
 
-    private String abbreviateLotId(String lotId) {
-        if (TextUtils.isEmpty(lotId)) {
-            return "-";
-        }
-        return lotId.length() <= 8 ? lotId : lotId.substring(0, 8);
-    }
-
     private int dp(int value) {
         return (int) TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
@@ -708,30 +749,20 @@ public class JournalActivity extends AppCompatActivity {
 
     private static final class JournalRow {
         private final String dateTimeLabel;
-        private final String lotLabel;
-        private final String eventLabel;
         private final String accountLabel;
         private final String debitLabel;
         private final String creditLabel;
-        private final String detailsLabel;
 
         private JournalRow(
                 String dateTimeLabel,
-                String lotLabel,
-                String eventLabel,
                 String accountLabel,
                 String debitLabel,
-                String creditLabel,
-                String detailsLabel
+                String creditLabel
         ) {
             this.dateTimeLabel = dateTimeLabel;
-            this.lotLabel = lotLabel;
-            this.eventLabel = eventLabel;
             this.accountLabel = accountLabel;
             this.debitLabel = debitLabel;
             this.creditLabel = creditLabel;
-            this.detailsLabel = detailsLabel;
         }
     }
 }
-

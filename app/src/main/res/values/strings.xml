@@ -151,6 +151,10 @@
     <string name="journal_chart_title">Chart of accounts</string>
     <string name="journal_chart_caption">Reference list for consistent merchandising journalizing. Current Module 1 automated entries mainly use cash in bank, merchandise inventory, accounts payable, and inventory loss.</string>
     <string name="journal_entries_section_title">Journal table</string>
+    <string name="journal_page_summary">Page %1$d of %2$d</string>
+    <string name="journal_page_summary_empty">Page 0 of 0</string>
+    <string name="button_previous_journal_page">Previous</string>
+    <string name="button_next_journal_page">Next</string>
     <string name="journal_table_header_date">Date</string>
     <string name="journal_table_header_lot">Lot</string>
     <string name="journal_table_header_event">Event</string>
