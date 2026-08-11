@@ -36,6 +36,7 @@ import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.service.ModuleOneRepository;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.DateFormat;
@@ -57,8 +58,6 @@ public class JournalActivity extends AppCompatActivity {
     private final DateFormat dateTimeFormat = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault());
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
-    private MaterialToolbar topAppBar;
-    private ScrollView contentScrollView;
     private Spinner monthSpinner;
     private Spinner yearSpinner;
     private TextView journalStatusView;
@@ -72,6 +71,7 @@ public class JournalActivity extends AppCompatActivity {
     private Button nextJournalPageButton;
     private TextView journalPageSummaryView;
     private Button journalSortToggleButton;
+    private BottomNavigationView bottomNavigationView;
 
     private ModuleOneRepository repository;
     private String initialLotId;
@@ -89,7 +89,7 @@ public class JournalActivity extends AppCompatActivity {
         setContentView(R.layout.activity_journal);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
 
@@ -97,10 +97,21 @@ public class JournalActivity extends AppCompatActivity {
         repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         bindViews();
         chartOfAccountsView.setText(buildChartOfAccountsText());
-        setupTopAppBar();
+        setupNavigation();
         setupPeriodSpinners();
         bindActions();
         loadInitialJournal();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        bottomNavigationView.setSelectedItemId(R.id.nav_journal);
+        if (hasResumedOnce) {
+            loadSelectedJournal();
+            return;
+        }
+        hasResumedOnce = true;
     }
 
     @Override
@@ -109,19 +120,8 @@ public class JournalActivity extends AppCompatActivity {
         ioExecutor.shutdown();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (hasResumedOnce) {
-            loadSelectedJournal();
-            return;
-        }
-        hasResumedOnce = true;
-    }
-
     private void bindViews() {
-        topAppBar = findViewById(R.id.top_app_bar);
-        contentScrollView = findViewById(R.id.content_scroll);
+        MaterialToolbar topAppBar = findViewById(R.id.top_app_bar);
         monthSpinner = findViewById(R.id.spinner_journal_month);
         yearSpinner = findViewById(R.id.spinner_journal_year);
         journalStatusView = findViewById(R.id.text_journal_status);
@@ -134,23 +134,22 @@ public class JournalActivity extends AppCompatActivity {
         previousJournalPageButton = findViewById(R.id.button_previous_journal_page);
         nextJournalPageButton = findViewById(R.id.button_next_journal_page);
         journalPageSummaryView = findViewById(R.id.text_journal_page_summary);
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
+        
+        topAppBar.setTitle(R.string.journal_screen_title);
     }
 
-    private void setupTopAppBar() {
-        topAppBar.setTitle(R.string.journal_screen_title);
-        topAppBar.inflateMenu(R.menu.main_sections_menu);
-        topAppBar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.menu_lot) {
-                Intent intent = new Intent(this, MainActivity.class);
-                if (!TextUtils.isEmpty(initialLotId)) {
-                    intent.putExtra(EXTRA_LOT_ID, initialLotId);
-                }
-                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                startActivity(intent);
+    private void setupNavigation() {
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.nav_inventory) {
+                startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
                 return true;
-            }
-            if (item.getItemId() == R.id.menu_journal) {
-                contentScrollView.post(() -> contentScrollView.smoothScrollTo(0, 0));
+            } else if (itemId == R.id.nav_sales) {
+                startActivity(new Intent(this, SalesActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                return true;
+            } else if (itemId == R.id.nav_journal) {
+                findViewById(R.id.content_scroll).scrollTo(0, 0);
                 return true;
             }
             return false;

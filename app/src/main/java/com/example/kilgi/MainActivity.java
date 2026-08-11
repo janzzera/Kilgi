@@ -5,13 +5,11 @@ import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
-import android.widget.AdapterView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -26,25 +24,19 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.AccountingCatalog;
-import com.example.kilgi.inventory.data.CustomerEntity;
-import com.example.kilgi.inventory.data.CustomerLedgerSummary;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.LossType;
 import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.data.LotWithDetails;
-import com.example.kilgi.inventory.data.OpenCustomerInvoice;
-import com.example.kilgi.inventory.data.OpenProviderLotPayable;
 import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderEntity;
-import com.example.kilgi.inventory.data.ProviderLedgerSummary;
 import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
 import com.example.kilgi.inventory.service.BatchValuationSnapshot;
-import com.example.kilgi.inventory.service.CustomerCollectionResult;
 import com.example.kilgi.inventory.service.LotFilterUtils;
 import com.example.kilgi.inventory.service.ModuleOneRepository;
-import com.example.kilgi.inventory.service.ProviderSettlementResult;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.DateFormat;
@@ -65,8 +57,6 @@ public class MainActivity extends AppCompatActivity {
     private final DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault());
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
-    private MaterialToolbar topAppBar;
-    private ScrollView contentScrollView;
     private Button fromDateFilterButton;
     private Button toDateFilterButton;
     private Button lotSortToggleButton;
@@ -83,15 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private TableLayout lotDetailsTableLayout;
     private Button addExpenseButton;
     private Button logSpoilageButton;
-    private Button addProviderButton;
-    private Button addCustomerButton;
-    private Button logRetailSaleButton;
-    private Button createWholesaleInvoiceButton;
-    private Button collectCustomerPaymentButton;
-    private Button settleProviderButton;
-    private TextView salesStatusView;
-    private TextView salesSummaryView;
-    private View lotSectionView;
+    private BottomNavigationView bottomNavigationView;
 
     private ModuleOneRepository repository;
     private String initialLotId;
@@ -111,17 +93,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
 
         initialLotId = getIntent().getStringExtra(JournalActivity.EXTRA_LOT_ID);
         repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         bindViews();
-        setupTopAppBar();
+        setupNavigation();
         initializeLotFilterState();
         bindActions();
         updateLotActionButtons(false);
+        loadInitialDashboard();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        bottomNavigationView.setSelectedItemId(R.id.nav_inventory);
         loadInitialDashboard();
     }
 
@@ -132,8 +121,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bindViews() {
-        topAppBar = findViewById(R.id.top_app_bar);
-        contentScrollView = findViewById(R.id.content_scroll);
+        MaterialToolbar topAppBar = findViewById(R.id.top_app_bar);
         fromDateFilterButton = findViewById(R.id.button_filter_from_date);
         toDateFilterButton = findViewById(R.id.button_filter_to_date);
         previousLotPageButton = findViewById(R.id.button_previous_lot_page);
@@ -149,21 +137,25 @@ public class MainActivity extends AppCompatActivity {
         lotDetailsTableLayout = findViewById(R.id.table_lot_details);
         addExpenseButton = findViewById(R.id.button_add_expense);
         logSpoilageButton = findViewById(R.id.button_log_spoilage);
-        addProviderButton = findViewById(R.id.button_add_provider);
-        addCustomerButton = findViewById(R.id.button_add_customer);
-        logRetailSaleButton = findViewById(R.id.button_log_retail_sale);
-        createWholesaleInvoiceButton = findViewById(R.id.button_create_wholesale_invoice);
-        collectCustomerPaymentButton = findViewById(R.id.button_collect_customer_payment);
-        settleProviderButton = findViewById(R.id.button_settle_provider);
-        salesStatusView = findViewById(R.id.text_sales_status);
-        salesSummaryView = findViewById(R.id.text_sales_summary);
-        lotSectionView = findViewById(R.id.section_lot);
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
+        
+        topAppBar.setTitle(R.string.lot_screen_title);
     }
 
-    private void setupTopAppBar() {
-        topAppBar.setTitle(R.string.lot_screen_title);
-        topAppBar.inflateMenu(R.menu.main_sections_menu);
-        topAppBar.setOnMenuItemClickListener(item -> handleMenuNavigation(item.getItemId()));
+    private void setupNavigation() {
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.nav_inventory) {
+                return true;
+            } else if (itemId == R.id.nav_sales) {
+                startActivity(new Intent(this, SalesActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                return true;
+            } else if (itemId == R.id.nav_journal) {
+                startActivity(new Intent(this, JournalActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                return true;
+            }
+            return false;
+        });
     }
 
     private void initializeLotFilterState() {
@@ -200,34 +192,33 @@ public class MainActivity extends AppCompatActivity {
                 ? startOfDay(calendar.getTimeInMillis())
                 : endOfDay(calendar.getTimeInMillis());
 
-        if (selectingFromDate) {
-            selectedFromDateMillis = normalizedMillis;
-            long activeTo = selectedToDateMillis != null ? selectedToDateMillis : resolvedToDateMillis;
-            if (normalizedMillis > activeTo) {
-                selectedToDateMillis = endOfDay(normalizedMillis);
+        runOnUiThread(() -> {
+            if (selectingFromDate) {
+                selectedFromDateMillis = normalizedMillis;
+                long activeTo = selectedToDateMillis != null ? selectedToDateMillis : resolvedToDateMillis;
+                if (normalizedMillis > activeTo) {
+                    selectedToDateMillis = endOfDay(normalizedMillis);
+                }
+            } else {
+                selectedToDateMillis = normalizedMillis;
+                long activeFrom = selectedFromDateMillis != null ? selectedFromDateMillis : resolvedFromDateMillis;
+                if (normalizedMillis < activeFrom) {
+                    selectedFromDateMillis = startOfDay(normalizedMillis);
+                }
             }
-        } else {
-            selectedToDateMillis = normalizedMillis;
-            long activeFrom = selectedFromDateMillis != null ? selectedFromDateMillis : resolvedFromDateMillis;
-            if (normalizedMillis < activeFrom) {
-                selectedFromDateMillis = startOfDay(normalizedMillis);
-            }
-        }
 
-        updateDateRangeViews(
-                selectedFromDateMillis != null ? selectedFromDateMillis : resolvedFromDateMillis,
-                selectedToDateMillis != null ? selectedToDateMillis : resolvedToDateMillis
-        );
+            updateDateRangeViews(
+                    selectedFromDateMillis != null ? selectedFromDateMillis : resolvedFromDateMillis,
+                    selectedToDateMillis != null ? selectedToDateMillis : resolvedToDateMillis
+            );
+        });
     }
 
     private void bindActions() {
-        Button createLotButton = findViewById(R.id.button_create_lot);
-        Button applyFilterButton = findViewById(R.id.button_apply_lot_filter);
-
-        createLotButton.setOnClickListener(v -> showCreateLotDialog());
+        findViewById(R.id.button_create_lot).setOnClickListener(v -> showCreateLotDialog());
         fromDateFilterButton.setOnClickListener(v -> showLotDatePicker(true));
         toDateFilterButton.setOnClickListener(v -> showLotDatePicker(false));
-        applyFilterButton.setOnClickListener(v -> {
+        findViewById(R.id.button_apply_lot_filter).setOnClickListener(v -> {
             currentLotPageIndex = 0;
             refreshDashboardAsync(currentSelectedLotId, null, null, null, null, true);
         });
@@ -235,40 +226,10 @@ public class MainActivity extends AppCompatActivity {
         nextLotPageButton.setOnClickListener(v -> loadLotPage(currentLotPageIndex + 1));
         addExpenseButton.setOnClickListener(v -> showAddExpenseDialog());
         logSpoilageButton.setOnClickListener(v -> showLogSpoilageDialog());
-        addProviderButton.setOnClickListener(v -> showAddProviderDialog());
-        addCustomerButton.setOnClickListener(v -> showAddCustomerDialog());
-        logRetailSaleButton.setOnClickListener(v -> showRetailSaleDialog());
-        createWholesaleInvoiceButton.setOnClickListener(v -> showWholesaleInvoiceDialog());
-        collectCustomerPaymentButton.setOnClickListener(v -> showCustomerCollectionDialog());
-        settleProviderButton.setOnClickListener(v -> showProviderSettlementDialog());
     }
 
     private void loadLotPage(int pageIndex) {
         refreshDashboardAsync(null, null, null, null, pageIndex, false);
-    }
-
-    private boolean handleMenuNavigation(int itemId) {
-        if (itemId == R.id.menu_lot) {
-            scrollToSection(lotSectionView);
-            return true;
-        }
-        if (itemId == R.id.menu_journal) {
-            Intent intent = new Intent(this, JournalActivity.class);
-            if (!TextUtils.isEmpty(currentSelectedLotId)) {
-                intent.putExtra(JournalActivity.EXTRA_LOT_ID, currentSelectedLotId);
-            }
-            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            startActivity(intent);
-            return true;
-        }
-        return false;
-    }
-
-    private void scrollToSection(View sectionView) {
-        if (sectionView == null || contentScrollView == null) {
-            return;
-        }
-        contentScrollView.post(() -> contentScrollView.smoothScrollTo(0, sectionView.getTop()));
     }
 
     private void loadInitialDashboard() {
@@ -310,10 +271,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCreateLotDialog(List<ProviderEntity> providers) {
-        // Optimization: if providers is empty, we still show dialog but it might be in 'loading' state
-        // To fix the hang, we need to ensure this is called correctly.
-        // Let's refactor the dialog trigger to be more robust.
-        
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_lot, null, false);
         Spinner providerSpinner = dialogView.findViewById(R.id.spinner_provider);
         EditText vegetableTypeInput = dialogView.findViewById(R.id.edit_vegetable_type);
@@ -324,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
         EditText standardFreightInput = dialogView.findViewById(R.id.edit_standard_freight);
         Spinner freightSourceSpinner = dialogView.findViewById(R.id.spinner_freight_payment_source);
 
-        providerSpinner.setAdapter(buildProviderAdapter(providers));
+        providerSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, providers));
         purchaseSourceSpinner.setAdapter(buildPaymentSourceAdapter());
         freightSourceSpinner.setAdapter(buildPaymentSourceAdapter());
         purchaseSourceSpinner.setSelection(PaymentSource.ACCOUNTS_PAYABLE.ordinal());
@@ -381,12 +338,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }));
         
-        // If we were called with an empty list, fetch them now
         if (providers.isEmpty()) {
             ioExecutor.execute(() -> {
                 List<ProviderEntity> fetched = repository.getProviders();
                 runOnUiThread(() -> {
-                    providerSpinner.setAdapter(buildProviderAdapter(fetched));
+                    providerSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fetched));
                 });
             });
         }
@@ -578,7 +534,6 @@ public class MainActivity extends AppCompatActivity {
             final boolean finalShouldResetFilter = shouldResetFilter;
             ActiveLotDateRange activeDateRange = resolveActiveLotDateRange(allLots);
             List<LotRecord> filteredLots = buildLotRecords(allLots, activeDateRange.fromMillis, activeDateRange.toMillis, lotSortAscending);
-            String salesSummary = buildSalesSummaryText();
             int pageIndex;
             List<LotRecord> visibleLots;
             String effectiveLotId;
@@ -616,10 +571,6 @@ public class MainActivity extends AppCompatActivity {
                 if (spoilageStatus != null) {
                     spoilageStatusView.setText(spoilageStatus);
                 }
-                if (salesStatus != null) {
-                    salesStatusView.setText(salesStatus);
-                }
-                salesSummaryView.setText(salesSummary);
                 renderLotsTable(visibleLots, currentSelectedLotId);
                 updateSortToggleButton();
                 renderSelectedLotDetails(selectedRecord);
@@ -968,474 +919,7 @@ public class MainActivity extends AppCompatActivity {
             if (spoilageStatus != null) {
                 spoilageStatusView.setText(spoilageStatus);
             }
-            if (salesStatus != null) {
-                salesStatusView.setText(salesStatus);
-            }
         });
-    }
-
-    private void showAddProviderDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_provider, null, false);
-        EditText nameInput = dialogView.findViewById(R.id.edit_provider_name);
-        EditText contactInput = dialogView.findViewById(R.id.edit_provider_contact);
-        EditText addressInput = dialogView.findViewById(R.id.edit_provider_address);
-        EditText notesInput = dialogView.findViewById(R.id.edit_provider_notes);
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.dialog_add_provider_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .setPositiveButton(R.string.dialog_save, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                String displayName = InventoryInputParser.requireText(nameInput.getText().toString(), "Provider name");
-                String contact = contactInput.getText().toString();
-                String address = addressInput.getText().toString();
-                String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        ProviderEntity provider = repository.createProvider(displayName, contact, address, notes);
-                        refreshDashboardOnWorker(
-                                currentSelectedLotId,
-                                null,
-                                null,
-                                null,
-                                getString(R.string.provider_created_message, provider.displayName),
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, null, exception.getMessage());
-                    }
-                });
-            } catch (IllegalArgumentException exception) {
-                salesStatusView.setText(exception.getMessage());
-            }
-        }));
-        dialog.show();
-    }
-
-    private void showAddCustomerDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_customer, null, false);
-        EditText nameInput = dialogView.findViewById(R.id.edit_customer_name);
-        EditText contactInput = dialogView.findViewById(R.id.edit_customer_contact);
-        EditText addressInput = dialogView.findViewById(R.id.edit_customer_address);
-        EditText notesInput = dialogView.findViewById(R.id.edit_customer_notes);
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.dialog_add_customer_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .setPositiveButton(R.string.dialog_save, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                String displayName = InventoryInputParser.requireText(nameInput.getText().toString(), "Customer name");
-                String contact = contactInput.getText().toString();
-                String address = addressInput.getText().toString();
-                String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        CustomerEntity customer = repository.createCustomer(displayName, contact, address, notes);
-                        refreshDashboardOnWorker(
-                                currentSelectedLotId,
-                                null,
-                                null,
-                                null,
-                                getString(R.string.customer_created_message, customer.displayName),
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, null, exception.getMessage());
-                    }
-                });
-            } catch (IllegalArgumentException exception) {
-                salesStatusView.setText(exception.getMessage());
-            }
-        }));
-        dialog.show();
-    }
-
-    private void showRetailSaleDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_log_retail_sale, null, false);
-        EditText amountInput = dialogView.findViewById(R.id.edit_retail_sale_amount);
-        EditText notesInput = dialogView.findViewById(R.id.edit_retail_sale_notes);
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.dialog_log_retail_sale_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .setPositiveButton(R.string.dialog_save, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Retail sale amount");
-                String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        repository.recordRetailSale(amount, notes);
-                        refreshDashboardOnWorker(
-                                currentSelectedLotId,
-                                null,
-                                null,
-                                null,
-                                getString(R.string.retail_sale_logged_message, currencyFormat.format(amount)),
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, null, exception.getMessage());
-                    }
-                });
-            } catch (IllegalArgumentException exception) {
-                salesStatusView.setText(exception.getMessage());
-            }
-        }));
-        dialog.show();
-    }
-
-    private void showWholesaleInvoiceDialog() {
-        // Show immediately with loading state logic
-        showWholesaleInvoiceDialog(new ArrayList<>());
-    }
-
-    private void showWholesaleInvoiceDialog(List<CustomerEntity> customers) {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_wholesale_invoice, null, false);
-        Spinner customerSpinner = dialogView.findViewById(R.id.spinner_invoice_customer);
-        EditText descriptionInput = dialogView.findViewById(R.id.edit_invoice_description);
-        EditText amountInput = dialogView.findViewById(R.id.edit_invoice_amount);
-        EditText notesInput = dialogView.findViewById(R.id.edit_invoice_notes);
-
-        customerSpinner.setAdapter(buildCustomerAdapter(customers));
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.dialog_wholesale_invoice_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .setPositiveButton(R.string.dialog_save, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                CustomerEntity customer = (CustomerEntity) customerSpinner.getSelectedItem();
-                if (customer == null) {
-                    throw new IllegalArgumentException(getString(R.string.no_customers_available));
-                }
-                String description = InventoryInputParser.requireText(descriptionInput.getText().toString(), "Invoice description");
-                double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Invoice amount");
-                String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        var invoice = repository.createWholesaleInvoice(customer.customerId, description, amount, notes);
-                        refreshDashboardOnWorker(
-                                currentSelectedLotId,
-                                null,
-                                null,
-                                null,
-                                getString(R.string.wholesale_invoice_created_message, invoice.invoiceNumber, customer.displayName),
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, null, exception.getMessage());
-                    }
-                });
-            } catch (IllegalArgumentException exception) {
-                salesStatusView.setText(exception.getMessage());
-            }
-        }));
-        
-        if (customers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<CustomerEntity> fetched = repository.getCustomers();
-                runOnUiThread(() -> {
-                    customerSpinner.setAdapter(buildCustomerAdapter(fetched));
-                });
-            });
-        }
-        
-        dialog.show();
-    }
-
-    private void showCustomerCollectionDialog() {
-        showCustomerCollectionDialog(new ArrayList<>());
-    }
-
-    private void showCustomerCollectionDialog(List<CustomerEntity> customers) {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_collect_customer_payment, null, false);
-        Spinner customerSpinner = dialogView.findViewById(R.id.spinner_collection_customer);
-        TextView breakdownView = dialogView.findViewById(R.id.text_customer_collection_breakdown);
-        EditText amountInput = dialogView.findViewById(R.id.edit_customer_collection_amount);
-        EditText notesInput = dialogView.findViewById(R.id.edit_customer_collection_notes);
-
-        customerSpinner.setAdapter(buildCustomerAdapter(customers));
-        bindCustomerBreakdownLoader(customerSpinner, breakdownView);
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.dialog_collect_payment_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .setPositiveButton(R.string.dialog_save, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                CustomerEntity customer = (CustomerEntity) customerSpinner.getSelectedItem();
-                if (customer == null) {
-                    throw new IllegalArgumentException(getString(R.string.no_customers_available));
-                }
-                double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Collection amount");
-                String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        CustomerCollectionResult result = repository.collectCustomerPayment(customer.customerId, amount, notes);
-                        refreshDashboardOnWorker(
-                                currentSelectedLotId,
-                                null,
-                                null,
-                                null,
-                                getString(R.string.customer_collection_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), customer.displayName, result.allocations.size()),
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, null, exception.getMessage());
-                    }
-                });
-            } catch (IllegalArgumentException exception) {
-                salesStatusView.setText(exception.getMessage());
-            }
-        }));
-        
-        if (customers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<CustomerEntity> fetched = repository.getCustomers();
-                runOnUiThread(() -> {
-                    customerSpinner.setAdapter(buildCustomerAdapter(fetched));
-                });
-            });
-        }
-        
-        dialog.show();
-    }
-
-    private void showProviderSettlementDialog() {
-        showProviderSettlementDialog(new ArrayList<>());
-    }
-
-    private void showProviderSettlementDialog(List<ProviderEntity> providers) {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_settle_provider_payment, null, false);
-        Spinner providerSpinner = dialogView.findViewById(R.id.spinner_settlement_provider);
-        TextView breakdownView = dialogView.findViewById(R.id.text_provider_settlement_breakdown);
-        EditText amountInput = dialogView.findViewById(R.id.edit_provider_settlement_amount);
-        EditText notesInput = dialogView.findViewById(R.id.edit_provider_settlement_notes);
-
-        providerSpinner.setAdapter(buildProviderAdapter(providers));
-        bindProviderBreakdownLoader(providerSpinner, breakdownView);
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.dialog_settle_provider_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .setPositiveButton(R.string.dialog_save, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                ProviderEntity provider = (ProviderEntity) providerSpinner.getSelectedItem();
-                if (provider == null) {
-                    throw new IllegalArgumentException(getString(R.string.no_providers_available));
-                }
-                double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Provider payment amount");
-                String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        ProviderSettlementResult result = repository.settleProviderBalance(provider.providerId, amount, notes);
-                        refreshDashboardOnWorker(
-                                currentSelectedLotId,
-                                null,
-                                null,
-                                null,
-                                getString(R.string.provider_settlement_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), provider.displayName, result.allocations.size()),
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, null, exception.getMessage());
-                    }
-                });
-            } catch (IllegalArgumentException exception) {
-                salesStatusView.setText(exception.getMessage());
-            }
-        }));
-        
-        if (providers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<ProviderEntity> fetched = repository.getProviders();
-                runOnUiThread(() -> {
-                    providerSpinner.setAdapter(buildProviderAdapter(fetched));
-                });
-            });
-        }
-        
-        dialog.show();
-    }
-
-    private ArrayAdapter<ProviderEntity> buildProviderAdapter(List<ProviderEntity> providers) {
-        ArrayAdapter<ProviderEntity> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_item,
-                providers
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        return adapter;
-    }
-
-    private ArrayAdapter<CustomerEntity> buildCustomerAdapter(List<CustomerEntity> customers) {
-        ArrayAdapter<CustomerEntity> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_item,
-                customers
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        return adapter;
-    }
-
-    private void bindCustomerBreakdownLoader(Spinner spinner, TextView breakdownView) {
-        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                CustomerEntity customer = (CustomerEntity) parent.getItemAtPosition(position);
-                if (customer == null) {
-                    breakdownView.setText(R.string.no_customers_available);
-                    return;
-                }
-                ioExecutor.execute(() -> {
-                    List<OpenCustomerInvoice> invoices = repository.getOpenInvoicesForCustomer(customer.customerId);
-                    String breakdown = buildCustomerBreakdownText(invoices);
-                    runOnUiThread(() -> breakdownView.setText(breakdown));
-                });
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                breakdownView.setText(R.string.loading_balance_breakdown);
-            }
-        };
-        spinner.setOnItemSelectedListener(listener);
-        if (spinner.getCount() > 0) {
-            listener.onItemSelected(spinner, null, spinner.getSelectedItemPosition(), spinner.getSelectedItemId());
-        }
-    }
-
-    private void bindProviderBreakdownLoader(Spinner spinner, TextView breakdownView) {
-        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                ProviderEntity provider = (ProviderEntity) parent.getItemAtPosition(position);
-                if (provider == null) {
-                    breakdownView.setText(R.string.no_providers_available);
-                    return;
-                }
-                ioExecutor.execute(() -> {
-                    List<OpenProviderLotPayable> payables = repository.getOpenLotPayablesForProvider(provider.providerId);
-                    String breakdown = buildProviderBreakdownText(payables);
-                    runOnUiThread(() -> breakdownView.setText(breakdown));
-                });
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                breakdownView.setText(R.string.loading_balance_breakdown);
-            }
-        };
-        spinner.setOnItemSelectedListener(listener);
-        if (spinner.getCount() > 0) {
-            listener.onItemSelected(spinner, null, spinner.getSelectedItemPosition(), spinner.getSelectedItemId());
-        }
-    }
-
-    private String buildSalesSummaryText() {
-        List<CustomerLedgerSummary> customerSummaries = repository.getCustomerLedgerSummaries();
-        List<ProviderLedgerSummary> providerSummaries = repository.getProviderLedgerSummaries();
-        if (customerSummaries.isEmpty() && providerSummaries.isEmpty()) {
-            return getString(R.string.sales_summary_empty);
-        }
-
-        StringBuilder builder = new StringBuilder();
-        if (!customerSummaries.isEmpty()) {
-            builder.append(getString(R.string.sales_summary_section_customers));
-            for (CustomerLedgerSummary summary : customerSummaries) {
-                builder.append("\n");
-                builder.append(getString(
-                        R.string.sales_summary_customer_line,
-                        summary.displayName,
-                        summary.openInvoiceCount,
-                        currencyFormat.format(summary.outstandingBalance)
-                ));
-            }
-        }
-        if (!providerSummaries.isEmpty()) {
-            if (builder.length() > 0) {
-                builder.append("\n\n");
-            }
-            builder.append(getString(R.string.sales_summary_section_providers));
-            for (ProviderLedgerSummary summary : providerSummaries) {
-                builder.append("\n");
-                builder.append(getString(
-                        R.string.sales_summary_provider_line,
-                        summary.displayName,
-                        summary.openLotCount,
-                        currencyFormat.format(summary.outstandingBalance)
-                ));
-            }
-        }
-        return builder.toString();
-    }
-
-    private String buildCustomerBreakdownText(List<OpenCustomerInvoice> invoices) {
-        if (invoices == null || invoices.isEmpty()) {
-            return getString(R.string.sales_summary_empty);
-        }
-        StringBuilder builder = new StringBuilder(getString(R.string.customer_invoice_breakdown_title));
-        for (OpenCustomerInvoice invoice : invoices) {
-            builder.append("\n");
-            builder.append(getString(
-                    R.string.customer_invoice_breakdown_line,
-                    invoice.invoiceNumber,
-                    invoice.description,
-                    currencyFormat.format(invoice.outstandingBalance)
-            ));
-        }
-        return builder.toString();
-    }
-
-    private String buildProviderBreakdownText(List<OpenProviderLotPayable> payables) {
-        if (payables == null || payables.isEmpty()) {
-            return getString(R.string.sales_summary_empty);
-        }
-        StringBuilder builder = new StringBuilder(getString(R.string.provider_payable_breakdown_title));
-        for (OpenProviderLotPayable payable : payables) {
-            builder.append("\n");
-            builder.append(getString(
-                    R.string.provider_payable_breakdown_line,
-                    abbreviateLotId(payable.lotId),
-                    payable.vegetableType,
-                    currencyFormat.format(payable.outstandingBalance)
-            ));
-        }
-        return builder.toString();
     }
 
     private double sumExpenses(LotWithDetails lotWithDetails) {

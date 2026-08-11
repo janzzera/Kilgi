@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">Kilgi</string>
     <string name="menu_toolbar_content_description">Main navigation menu</string>
-    <string name="menu_lot">Lot</string>
+    <string name="menu_lot">Inventory</string>
+    <string name="menu_sales">Sales</string>
     <string name="menu_journal">Journal</string>
     <string name="lot_screen_title">Lot</string>
     <string name="journal_screen_title">Journal</string>

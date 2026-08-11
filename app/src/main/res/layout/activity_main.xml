@@ -1,358 +1,306 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/top_app_bar"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:contentDescription="@string/menu_toolbar_content_description"
-        android:minHeight="?attr/actionBarSize"
-        app:title="@string/lot_screen_title" />
+        android:layout_height="wrap_content">
 
-    <ScrollView
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/top_app_bar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/lot_screen_title" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/content_scroll"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/section_lot"
+            <!-- New Lot Action -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/lots_screen_heading"
-                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-                android:textStyle="bold" />
+                android:layout_marginBottom="16dp">
 
-            <Button
-                android:id="@+id/button_create_lot"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/button_new_lot"
-                android:textAllCaps="false" />
-
-            <TextView
-                android:id="@+id/text_batch_status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/batch_status_idle"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/lots_filter_title"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginStart="12dp"
-                    android:text="@string/label_filter_from_date"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginStart="12dp"
-                    android:text="@string/label_filter_to_date"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    <TextView
+                        android:id="@+id/section_lot"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lots_screen_heading"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                        android:textStyle="bold" />
 
-            </LinearLayout>
+                    <Button
+                        android:id="@+id/button_create_lot"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/button_new_lot"
+                        android:textAllCaps="false" />
 
-            <LinearLayout
+                    <TextView
+                        android:id="@+id/text_batch_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/batch_status_idle"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Filters -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
-                android:orientation="horizontal">
+                android:layout_marginBottom="16dp">
 
-                <Button
-                    android:id="@+id/button_filter_from_date"
-                    android:layout_width="150dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="24dp"
-                    android:text="@string/button_select_from_date"
-                    android:textAllCaps="false"
-                    style="@style/Widget.Material3.Button.OutlinedButton"/>
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <Button
-                    android:id="@+id/button_filter_to_date"
-                    android:layout_width="150dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="24dp"
-                    android:text="@string/button_select_to_date"
-                    android:textAllCaps="false"
-                    style="@style/Widget.Material3.Button.OutlinedButton.Icon"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lots_filter_title"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                        android:textStyle="bold" />
 
-            </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/text_filter_range_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/filter_range_summary_placeholder"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                        <Button
+                            android:id="@+id/button_filter_from_date"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/button_select_from_date"
+                            android:textAllCaps="false" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+                        <Button
+                            android:id="@+id/button_filter_to_date"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/button_select_to_date"
+                            android:textAllCaps="false" />
+                    </LinearLayout>
 
-                <Button
-                    android:id="@+id/button_apply_lot_filter"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/button_apply_filter"
-                    android:textAllCaps="false" />
+                    <TextView
+                        android:id="@+id/text_filter_range_summary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/filter_range_summary_placeholder"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
-            </LinearLayout>
+                    <Button
+                        android:id="@+id/button_apply_lot_filter"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/button_apply_filter"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
+            <!-- Lots Table -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
                 android:text="@string/lots_table_title"
                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:textStyle="bold" />
 
-            <HorizontalScrollView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:fillViewport="true">
+                android:layout_marginBottom="16dp">
 
-                <TableLayout
-                    android:id="@+id/table_lots"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:stretchColumns="1,2,3,4,5" />
-            </HorizontalScrollView>
+                    android:orientation="vertical">
 
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fillViewport="true">
+
+                        <TableLayout
+                            android:id="@+id/table_lots"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:stretchColumns="1,2,3,4,5" />
+                    </HorizontalScrollView>
+
+                    <TextView
+                        android:id="@+id/text_lots_empty_state"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="@string/no_lots_placeholder"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="8dp">
+
+                        <Button
+                            android:id="@+id/button_previous_lot_page"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/button_previous_page"
+                            android:textAllCaps="false" />
+
+                        <TextView
+                            android:id="@+id/text_lot_page_summary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="@string/lot_page_summary_empty"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                        <Button
+                            android:id="@+id/button_next_lot_page"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/button_next_page"
+                            android:textAllCaps="false" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Lot Details -->
             <TextView
-                android:id="@+id/text_lots_empty_state"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/no_lots_placeholder"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/button_previous_lot_page"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/button_previous_page"
-                    android:textAllCaps="false" />
-
-                <TextView
-                    android:id="@+id/text_lot_page_summary"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="12dp"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="@string/lot_page_summary_empty"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-                <Button
-                    android:id="@+id/button_next_lot_page"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/button_next_page"
-                    android:textAllCaps="false" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
                 android:text="@string/lot_details_title"
                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/text_selected_lot_label"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="@string/no_active_lot_placeholder"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                android:layout_marginBottom="16dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/button_add_expense"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/button_open_add_expense"
-                    android:textAllCaps="false" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <Button
-                    android:id="@+id/button_log_spoilage"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:text="@string/button_open_log_spoilage"
-                    android:textAllCaps="false" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/text_selected_lot_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/no_active_lot_placeholder"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/text_expense_status"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/button_add_expense"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/button_open_add_expense"
+                            android:textAllCaps="false" />
+
+                        <Button
+                            android:id="@+id/button_log_spoilage"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/button_open_log_spoilage"
+                            android:textAllCaps="false" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/text_expense_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/expense_status_idle"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                    <TextView
+                        android:id="@+id/text_spoilage_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/spoilage_status_idle"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                    <TableLayout
+                        android:id="@+id/table_lot_details"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:stretchColumns="1" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Bottom padding for nav bar -->
+            <View
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/expense_status_idle"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                android:layout_height="80dp" />
 
-            <TextView
-                android:id="@+id/text_spoilage_status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/spoilage_status_idle"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <TableLayout
-                android:id="@+id/table_lot_details"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:stretchColumns="1" />
-
-            <TextView
-                android:id="@+id/section_module_two"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:text="@string/module_two_screen_heading"
-                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/button_add_provider"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/button_add_provider"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/button_add_customer"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:text="@string/button_add_customer"
-                    android:textAllCaps="false" />
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/button_log_retail_sale"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/button_log_retail_sale"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/button_create_wholesale_invoice"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/button_create_wholesale_invoice"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/button_collect_customer_payment"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/button_collect_customer_payment"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/button_settle_provider"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/button_settle_provider"
-                android:textAllCaps="false" />
-
-            <TextView
-                android:id="@+id/text_sales_status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/sales_status_idle"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/sales_summary_title"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/text_sales_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/sales_summary_empty"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
         </LinearLayout>
-    </ScrollView>
-</LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        app:menu="@menu/bottom_nav_menu" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
