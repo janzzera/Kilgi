@@ -4,6 +4,7 @@
     <string name="menu_lot">Inventory</string>
     <string name="menu_sales">Sales</string>
     <string name="menu_journal">Journal</string>
+    <string name="menu_reports">Reports</string>
     <string name="lot_screen_title">Lot</string>
     <string name="journal_screen_title">Journal</string>
     <string name="module_two_screen_heading">Module 2 - Sales &amp; Settlements</string>
@@ -200,4 +201,32 @@
     <string name="t_account_credit_label">Credit</string>
     <string name="t_account_total_label">Total Activity</string>
     <string name="t_account_net_label">Net Balance: %1$s %2$s</string>
+
+    <string name="reports_screen_title">Financial Reports</string>
+    <string name="reports_screen_caption">Professional accounting statements for the selected period.</string>
+    <string name="income_statement_title">Income Statement</string>
+    <string name="income_statement_period">For the month ended %1$s</string>
+    <string name="label_revenues">Revenues:</string>
+    <string name="label_expenses">Expenses:</string>
+    <string name="label_net_income">Net Income</string>
+    <string name="label_net_loss">Net Loss</string>
+
+    <string name="equity_statement_title">Statement of Changes in Owner\'s Equity</string>
+    <string name="label_capital_beginning">Capital, Beginning</string>
+    <string name="label_add_net_income">Add: Net Income</string>
+    <string name="label_less_net_loss">Less: Net Loss</string>
+    <string name="label_less_drawings">Less: Drawing</string>
+    <string name="label_capital_end">Capital, End</string>
+
+    <string name="balance_sheet_title">Balance Sheet</string>
+    <string name="balance_sheet_as_of">As of %1$s</string>
+    <string name="label_assets">Assets</string>
+    <string name="label_current_assets">Current Assets:</string>
+    <string name="label_non_current_assets">Non-current Assets:</string>
+    <string name="label_total_assets">Total Assets</string>
+    <string name="label_liabilities_equity">Liabilities and Owner\'s Equity</string>
+    <string name="label_liabilities">Liabilities:</string>
+    <string name="label_current_liabilities">Current Liabilities:</string>
+    <string name="label_total_liabilities_equity">Total Liabilities and Owner\'s Equity</string>
+    <string name="label_less">Less: %1$s</string>
 </resources>

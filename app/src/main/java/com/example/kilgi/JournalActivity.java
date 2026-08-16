@@ -151,6 +151,9 @@ public class JournalActivity extends AppCompatActivity {
             } else if (itemId == R.id.nav_journal) {
                 findViewById(R.id.content_scroll).scrollTo(0, 0);
                 return true;
+            } else if (itemId == R.id.nav_reports) {
+                startActivity(new Intent(this, ReportsActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                return true;
             }
             return false;
         });

@@ -153,6 +153,9 @@ public class MainActivity extends AppCompatActivity {
             } else if (itemId == R.id.nav_journal) {
                 startActivity(new Intent(this, JournalActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
                 return true;
+            } else if (itemId == R.id.nav_reports) {
+                startActivity(new Intent(this, ReportsActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                return true;
             }
             return false;
         });

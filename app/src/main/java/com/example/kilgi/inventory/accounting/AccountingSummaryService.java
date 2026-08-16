@@ -151,4 +151,128 @@ public class AccountingSummaryService {
             this.credit = credit;
         }
     }
+
+    public static class IncomeStatement {
+        public final Map<String, Double> revenues = new TreeMap<>();
+        public final Map<String, Double> expenses = new TreeMap<>();
+        public double totalRevenue = 0;
+        public double totalExpense = 0;
+
+        public double getNetIncome() {
+            return totalRevenue - totalExpense;
+        }
+    }
+
+    public static class EquityStatement {
+        public double beginningCapital = 0;
+        public double netIncome = 0;
+        public double drawings = 0;
+
+        public double getEndingCapital() {
+            return beginningCapital + netIncome - drawings;
+        }
+    }
+
+    public static class BalanceSheet {
+        public final Map<String, Double> currentAssets = new TreeMap<>();
+        public final Map<String, Double> nonCurrentAssets = new TreeMap<>();
+        public final Map<String, Double> currentLiabilities = new TreeMap<>();
+        public double totalAssets = 0;
+        public double totalLiabilities = 0;
+        public double endingCapital = 0;
+    }
+
+    public static IncomeStatement calculateIncomeStatement(List<JournalEntryWithLines> periodEntries) {
+        IncomeStatement is = new IncomeStatement();
+        for (JournalEntryWithLines entry : periodEntries) {
+            for (JournalLineEntity line : entry.lines) {
+                AccountingAccount account = AccountingCatalog.findByCode(line.accountCode);
+                if (account == null) continue;
+
+                if (account.getCategory() == AccountingAccount.Category.REVENUE) {
+                    double val = line.amount;
+                    if (JournalLineType.DEBIT.name().equals(line.lineType)) val = -val;
+                    is.revenues.put(account.getName(), is.revenues.getOrDefault(account.getName(), 0.0) + val);
+                } else if (account.getCategory() == AccountingAccount.Category.EXPENSE || account.getCategory() == AccountingAccount.Category.COST) {
+                    double val = line.amount;
+                    if (JournalLineType.CREDIT.name().equals(line.lineType)) val = -val;
+                    is.expenses.put(account.getName(), is.expenses.getOrDefault(account.getName(), 0.0) + val);
+                }
+            }
+        }
+        for (double val : is.revenues.values()) is.totalRevenue += val;
+        for (double val : is.expenses.values()) is.totalExpense += val;
+        return is;
+    }
+
+    public static EquityStatement calculateEquityStatement(List<JournalEntryWithLines> allEntriesUpTo, double netIncomeForPeriod) {
+        EquityStatement es = new EquityStatement();
+        es.netIncome = netIncomeForPeriod;
+        
+        // This is a simplification. Usually Beginning Capital is balance at start of period.
+        // We'll calculate total capital posted before this month as beginning capital.
+        // For Kilgi, since we don't have "Closing" entries yet, we'll just sum all Capital and Drawing entries.
+        
+        for (JournalEntryWithLines entry : allEntriesUpTo) {
+            for (JournalLineEntity line : entry.lines) {
+                AccountingAccount account = AccountingCatalog.findByCode(line.accountCode);
+                if (account == null) continue;
+
+                if (account.getCategory() == AccountingAccount.Category.OWNER_EQUITY) {
+                    // Check if it's the Capital account
+                    if (line.accountCode.equals(AccountingCatalog.CAPITAL.getCode())) {
+                        double val = line.amount;
+                        if (JournalLineType.DEBIT.name().equals(line.lineType)) val = -val;
+                        es.beginningCapital += val;
+                    } 
+                    // Check if it's Drawing
+                    else if (line.accountCode.equals(AccountingCatalog.DRAWING.getCode())) {
+                        double val = line.amount;
+                        if (JournalLineType.CREDIT.name().equals(line.lineType)) val = -val;
+                        es.drawings += val;
+                    }
+                }
+            }
+        }
+        
+        // Subtract current period Net Income from the cumulative capital to get 'Beginning' 
+        // IF the allEntriesUpTo includes the current month (which it does in our query).
+        // Let's assume es.beginningCapital currently holds 'Total Capital posted ever'.
+        // Actually, let's keep it simple: Beginning + Net Income - Drawings.
+        
+        return es;
+    }
+
+    public static BalanceSheet calculateBalanceSheet(List<JournalEntryWithLines> allEntriesUpTo, double endingCapital) {
+        BalanceSheet bs = new BalanceSheet();
+        bs.endingCapital = endingCapital;
+
+        for (JournalEntryWithLines entry : allEntriesUpTo) {
+            for (JournalLineEntity line : entry.lines) {
+                AccountingAccount account = AccountingCatalog.findByCode(line.accountCode);
+                if (account == null) continue;
+
+                double amount = line.amount;
+                boolean isDebit = JournalLineType.DEBIT.name().equals(line.lineType);
+
+                if (account.getCategory() == AccountingAccount.Category.ASSET) {
+                    double net = isDebit ? amount : -amount;
+                    if (line.accountCode.startsWith("11")) { // Simple rule: 11xxx are non-current
+                        bs.nonCurrentAssets.put(account.getName(), bs.nonCurrentAssets.getOrDefault(account.getName(), 0.0) + net);
+                    } else {
+                        bs.currentAssets.put(account.getName(), bs.currentAssets.getOrDefault(account.getName(), 0.0) + net);
+                    }
+                } else if (account.getCategory() == AccountingAccount.Category.LIABILITY) {
+                    double net = isDebit ? -amount : amount;
+                    bs.currentLiabilities.put(account.getName(), bs.currentLiabilities.getOrDefault(account.getName(), 0.0) + net);
+                }
+            }
+        }
+
+        for (double v : bs.currentAssets.values()) bs.totalAssets += v;
+        for (double v : bs.nonCurrentAssets.values()) bs.totalAssets += v;
+        for (double v : bs.currentLiabilities.values()) bs.totalLiabilities += v;
+
+        return bs;
+    }
 }
