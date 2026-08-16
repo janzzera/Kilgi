@@ -376,6 +376,14 @@ public class ModuleOneRepository {
         return providers == null ? Collections.emptyList() : providers;
     }
 
+    public UserEntity getUser(String userId) {
+        return userDao.getById(userId);
+    }
+
+    public void updateUser(UserEntity user) {
+        userDao.update(user);
+    }
+
     public List<CustomerEntity> getCustomers() {
         String userId = ensureLocalUserExists();
         List<CustomerEntity> customers = customerDao.getActiveCustomersForUser(userId);

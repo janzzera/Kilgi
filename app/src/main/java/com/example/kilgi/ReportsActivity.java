@@ -77,6 +77,11 @@ public class ReportsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (!MainActivity.isUserAuthenticated) {
+            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+            finish();
+            return;
+        }
         bottomNavigationView.setSelectedItemId(R.id.nav_reports);
     }
 

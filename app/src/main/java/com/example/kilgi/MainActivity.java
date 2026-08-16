@@ -30,6 +30,7 @@ import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.data.LotWithDetails;
 import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderEntity;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
 import com.example.kilgi.inventory.service.BatchValuationSnapshot;
@@ -85,10 +86,15 @@ public class MainActivity extends AppCompatActivity {
     private boolean lotSortAscending;
     private int currentLotPageIndex;
     private volatile boolean isDashboardRefreshing = false;
+    public static boolean isUserAuthenticated = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        checkAuthentication();
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -110,8 +116,31 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (!isUserAuthenticated) {
+            checkAuthentication();
+            return;
+        }
         bottomNavigationView.setSelectedItemId(R.id.nav_inventory);
         loadInitialDashboard();
+    }
+
+    private void checkAuthentication() {
+        new Thread(() -> {
+            UserEntity user = repository.getUser(ModuleOneRepository.LOCAL_USER_ID);
+            if (user == null || "PENDING_LOGIN_SETUP".equals(user.passwordHash)) {
+                runOnUiThread(() -> {
+                    startActivity(new Intent(this, UserSetupActivity.class));
+                    finish();
+                });
+            } else if (!isUserAuthenticated) {
+                runOnUiThread(() -> {
+                    startActivity(new Intent(this, LoginActivity.class));
+                    finish();
+                });
+            } else {
+                isUserAuthenticated = true;
+            }
+        }).start();
     }
 
     @Override
