@@ -452,29 +452,22 @@ public class JournalActivity extends AppCompatActivity {
     }
 
     private View createTAccountCard(AccountingSummaryService.TAccount account) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
-        card.setPadding(dp(16), dp(16), dp(16), dp(16));
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        cardParams.setMargins(0, 0, 0, dp(16));
-        card.setLayoutParams(cardParams);
-
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(0, 0, 0, dp(24));
+        
         TextView title = new TextView(this);
         title.setText(getString(R.string.journal_line_account, account.accountCode, account.accountName));
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         title.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        card.addView(title);
+        container.addView(title);
 
         View hLine = new View(this);
         hLine.setBackgroundColor(0xFF000000);
-        LinearLayout.LayoutParams hLineParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(2));
-        hLineParams.setMargins(0, dp(8), 0, 0);
-        card.addView(hLine, hLineParams);
+        LinearLayout.LayoutParams hLineParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        hLineParams.setMargins(0, dp(4), 0, 0);
+        container.addView(hLine, hLineParams);
 
         LinearLayout colsLayout = new LinearLayout(this);
         colsLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -486,21 +479,21 @@ public class JournalActivity extends AppCompatActivity {
         
         TextView debitHeader = new TextView(this);
         debitHeader.setText(R.string.t_account_debit_label);
-        debitHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        debitHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         debitHeader.setTypeface(null, android.graphics.Typeface.BOLD);
         debitCol.addView(debitHeader);
 
         for (JournalLineEntity line : account.debitLines) {
             TextView lineView = new TextView(this);
             lineView.setText(currencyFormat.format(line.amount));
-            lineView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            lineView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             debitCol.addView(lineView);
         }
 
         View vLine = new View(this);
         vLine.setBackgroundColor(0xFF000000);
         colsLayout.addView(debitCol);
-        colsLayout.addView(vLine, new LinearLayout.LayoutParams(dp(2), LinearLayout.LayoutParams.MATCH_PARENT));
+        colsLayout.addView(vLine, new LinearLayout.LayoutParams(dp(1), LinearLayout.LayoutParams.MATCH_PARENT));
 
         LinearLayout creditCol = new LinearLayout(this);
         creditCol.setOrientation(LinearLayout.VERTICAL);
@@ -510,23 +503,23 @@ public class JournalActivity extends AppCompatActivity {
 
         TextView creditHeader = new TextView(this);
         creditHeader.setText(R.string.t_account_credit_label);
-        creditHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        creditHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         creditHeader.setTypeface(null, android.graphics.Typeface.BOLD);
         creditCol.addView(creditHeader);
 
         for (JournalLineEntity line : account.creditLines) {
             TextView lineView = new TextView(this);
             lineView.setText(currencyFormat.format(line.amount));
-            lineView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            lineView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             creditCol.addView(lineView);
         }
         colsLayout.addView(creditCol);
 
-        card.addView(colsLayout);
+        container.addView(colsLayout);
 
         View footerLine = new View(this);
         footerLine.setBackgroundColor(0xFFCCCCCC);
-        card.addView(footerLine, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
+        container.addView(footerLine, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
 
         LinearLayout summaryLayout = new LinearLayout(this);
         summaryLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -534,32 +527,32 @@ public class JournalActivity extends AppCompatActivity {
 
         TextView debitTotal = new TextView(this);
         debitTotal.setText(currencyFormat.format(account.totalDebit));
-        debitTotal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        debitTotal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         debitTotal.setTypeface(null, android.graphics.Typeface.BOLD);
         debitTotal.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
 
         TextView creditTotal = new TextView(this);
         creditTotal.setText(currencyFormat.format(account.totalCredit));
-        creditTotal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        creditTotal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         creditTotal.setTypeface(null, android.graphics.Typeface.BOLD);
         creditTotal.setGravity(android.view.Gravity.END);
         creditTotal.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
 
         summaryLayout.addView(debitTotal);
         summaryLayout.addView(creditTotal);
-        card.addView(summaryLayout);
+        container.addView(summaryLayout);
 
         double net = account.getNetBalance();
         TextView netView = new TextView(this);
         String direction = net >= 0 ? "(Dr)" : "(Cr)";
         netView.setText(getString(R.string.t_account_net_label, currencyFormat.format(Math.abs(net)), direction));
-        netView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        netView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         netView.setTypeface(null, android.graphics.Typeface.BOLD);
         netView.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         netView.setPadding(0, dp(8), 0, 0);
-        card.addView(netView);
+        container.addView(netView);
 
-        return card;
+        return container;
     }
 
     private void renderTrialBalance(AccountingSummaryService.TrialBalance trialBalance) {

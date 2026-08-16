@@ -115,12 +115,18 @@
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         tools:text="For the month ended July 31, 2026" />
 
-                    <TableLayout
-                        android:id="@+id/table_income_statement"
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:stretchColumns="0" />
+                        android:fillViewport="true">
+
+                        <TableLayout
+                            android:id="@+id/table_income_statement"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:stretchColumns="0" />
+                    </HorizontalScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -144,12 +150,18 @@
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                         android:textStyle="bold" />
 
-                    <TableLayout
-                        android:id="@+id/table_equity_statement"
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:stretchColumns="0" />
+                        android:fillViewport="true">
+
+                        <TableLayout
+                            android:id="@+id/table_equity_statement"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:stretchColumns="0" />
+                    </HorizontalScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -181,12 +193,18 @@
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         tools:text="As of July 31, 2026" />
 
-                    <TableLayout
-                        android:id="@+id/table_balance_sheet"
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:stretchColumns="0" />
+                        android:fillViewport="true">
+
+                        <TableLayout
+                            android:id="@+id/table_balance_sheet"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:stretchColumns="0" />
+                    </HorizontalScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
