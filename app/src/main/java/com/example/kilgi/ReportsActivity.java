@@ -22,6 +22,7 @@ import com.example.kilgi.inventory.accounting.AccountingSummaryService;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.text.DateFormatSymbols;
@@ -68,6 +69,16 @@ public class ReportsActivity extends AppCompatActivity {
         bindViews();
         setupNavigation();
         setupPeriodSpinners();
+        
+        MaterialToolbar topAppBar = findViewById(R.id.top_app_bar);
+        topAppBar.inflateMenu(R.menu.reports_menu);
+        topAppBar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.menu_manage_periods) {
+                startActivity(new Intent(this, PeriodManagementActivity.class));
+                return true;
+            }
+            return false;
+        });
         
         findViewById(R.id.button_load_reports).setOnClickListener(v -> loadReports());
         
@@ -180,12 +191,17 @@ public class ReportsActivity extends AppCompatActivity {
 
         ioExecutor.execute(() -> {
             try {
+                Calendar startCal = Calendar.getInstance();
+                startCal.clear();
+                startCal.set(finalYear, month - 1, 1);
+                long periodStart = startCal.getTimeInMillis();
+
                 List<JournalEntryWithLines> periodEntries = repository.getJournalEntriesForPeriod(month, finalYear);
                 List<JournalEntryWithLines> allUpTo = repository.getJournalEntriesUpTo(month, finalYear);
 
                 AccountingSummaryService.IncomeStatement is = AccountingSummaryService.calculateIncomeStatement(periodEntries);
-                AccountingSummaryService.EquityStatement es = AccountingSummaryService.calculateEquityStatement(allUpTo, is.getNetIncome());
-                AccountingSummaryService.BalanceSheet bs = AccountingSummaryService.calculateBalanceSheet(allUpTo, es.getEndingCapital());
+                AccountingSummaryService.EquityStatement es = AccountingSummaryService.calculateEquityStatement(allUpTo, periodStart);
+                AccountingSummaryService.BalanceSheet bs = AccountingSummaryService.calculateBalanceSheet(allUpTo, es);
 
                 String periodLabel = formatPeriodLabel(month, finalYear);
 
@@ -228,16 +244,14 @@ public class ReportsActivity extends AppCompatActivity {
 
     private void renderEquityStatement(AccountingSummaryService.EquityStatement es) {
         esTable.removeAllViews();
-        esTable.addView(createDataRow(getString(R.string.label_capital_beginning), es.beginningCapital, 2));
+        esTable.addView(createDataRow("Owner\'s Capital", es.ownerCapital, 2));
+        esTable.addView(createDataRow("Prior Retained Earnings", es.priorRetainedEarnings, 2));
         
-        String netLabel = es.netIncome >= 0 ? getString(R.string.label_add_net_income) : getString(R.string.label_less_net_loss);
-        esTable.addView(createDataRow(netLabel, Math.abs(es.netIncome), 2));
-        
-        double subTotal = es.beginningCapital + es.netIncome;
-        esTable.addView(createDataRow("Total", subTotal, 2));
+        String netLabel = es.currentNetIncome >= 0 ? getString(R.string.label_add_net_income) : getString(R.string.label_less_net_loss);
+        esTable.addView(createDataRow(netLabel, Math.abs(es.currentNetIncome), 2));
         
         esTable.addView(createDataRow(getString(R.string.label_less_drawings), es.drawings, 2));
-        esTable.addView(createTotalRow(getString(R.string.label_capital_end), es.getEndingCapital(), 3));
+        esTable.addView(createTotalRow(getString(R.string.label_capital_end), es.getTotalEquity(), 3));
     }
 
     private void renderBalanceSheet(AccountingSummaryService.BalanceSheet bs) {
@@ -270,9 +284,9 @@ public class ReportsActivity extends AppCompatActivity {
         bsTable.addView(createTotalRow("Total Liabilities", bs.totalLiabilities, 2));
         
         bsTable.addView(createHeaderRow("Owner's Equity:"));
-        bsTable.addView(createDataRow("Capital, End", bs.endingCapital, 1));
+        bsTable.addView(createDataRow("Capital, End", bs.equity.getTotalEquity(), 1));
         
-        bsTable.addView(createTotalRow(getString(R.string.label_total_liabilities_equity), bs.totalLiabilities + bs.endingCapital, 3));
+        bsTable.addView(createTotalRow(getString(R.string.label_total_liabilities_equity), bs.totalLiabilities + bs.equity.getTotalEquity(), 3));
     }
 
     private TableRow createHeaderRow(String text) {

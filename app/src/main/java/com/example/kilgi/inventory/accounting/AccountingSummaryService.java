@@ -164,12 +164,13 @@ public class AccountingSummaryService {
     }
 
     public static class EquityStatement {
-        public double beginningCapital = 0;
-        public double netIncome = 0;
+        public double ownerCapital = 0;
+        public double priorRetainedEarnings = 0;
+        public double currentNetIncome = 0;
         public double drawings = 0;
 
-        public double getEndingCapital() {
-            return beginningCapital + netIncome - drawings;
+        public double getTotalEquity() {
+            return ownerCapital + priorRetainedEarnings + currentNetIncome - drawings;
         }
     }
 
@@ -179,7 +180,7 @@ public class AccountingSummaryService {
         public final Map<String, Double> currentLiabilities = new TreeMap<>();
         public double totalAssets = 0;
         public double totalLiabilities = 0;
-        public double endingCapital = 0;
+        public EquityStatement equity;
     }
 
     public static IncomeStatement calculateIncomeStatement(List<JournalEntryWithLines> periodEntries) {
@@ -205,47 +206,48 @@ public class AccountingSummaryService {
         return is;
     }
 
-    public static EquityStatement calculateEquityStatement(List<JournalEntryWithLines> allEntriesUpTo, double netIncomeForPeriod) {
+    public static EquityStatement calculateEquityStatement(
+            List<JournalEntryWithLines> allEntriesUpTo,
+            long periodStartTimestamp
+    ) {
         EquityStatement es = new EquityStatement();
-        es.netIncome = netIncomeForPeriod;
-        
-        // This is a simplification. Usually Beginning Capital is balance at start of period.
-        // We'll calculate total capital posted before this month as beginning capital.
-        // For Kilgi, since we don't have "Closing" entries yet, we'll just sum all Capital and Drawing entries.
         
         for (JournalEntryWithLines entry : allEntriesUpTo) {
+            boolean isPrior = entry.entry.timestamp < periodStartTimestamp;
+            
             for (JournalLineEntity line : entry.lines) {
                 AccountingAccount account = AccountingCatalog.findByCode(line.accountCode);
                 if (account == null) continue;
 
-                if (account.getCategory() == AccountingAccount.Category.OWNER_EQUITY) {
-                    // Check if it's the Capital account
+                double amount = line.amount;
+                boolean isDebit = JournalLineType.DEBIT.name().equals(line.lineType);
+
+                if (account.getCategory() == AccountingAccount.Category.REVENUE) {
+                    double net = isDebit ? -amount : amount;
+                    if (isPrior) es.priorRetainedEarnings += net;
+                    else es.currentNetIncome += net;
+                } else if (account.getCategory() == AccountingAccount.Category.EXPENSE || account.getCategory() == AccountingAccount.Category.COST) {
+                    double net = isDebit ? amount : -amount;
+                    if (isPrior) es.priorRetainedEarnings -= net;
+                    else es.currentNetIncome -= net;
+                } else if (account.getCategory() == AccountingAccount.Category.OWNER_EQUITY) {
                     if (line.accountCode.equals(AccountingCatalog.CAPITAL.getCode())) {
-                        double val = line.amount;
-                        if (JournalLineType.DEBIT.name().equals(line.lineType)) val = -val;
-                        es.beginningCapital += val;
-                    } 
-                    // Check if it's Drawing
-                    else if (line.accountCode.equals(AccountingCatalog.DRAWING.getCode())) {
-                        double val = line.amount;
-                        if (JournalLineType.CREDIT.name().equals(line.lineType)) val = -val;
-                        es.drawings += val;
+                        double net = isDebit ? -amount : amount;
+                        es.ownerCapital += net;
+                    } else if (line.accountCode.equals(AccountingCatalog.DRAWING.getCode())) {
+                        double net = isDebit ? amount : -amount;
+                        es.drawings += net;
                     }
                 }
             }
         }
         
-        // Subtract current period Net Income from the cumulative capital to get 'Beginning' 
-        // IF the allEntriesUpTo includes the current month (which it does in our query).
-        // Let's assume es.beginningCapital currently holds 'Total Capital posted ever'.
-        // Actually, let's keep it simple: Beginning + Net Income - Drawings.
-        
         return es;
     }
 
-    public static BalanceSheet calculateBalanceSheet(List<JournalEntryWithLines> allEntriesUpTo, double endingCapital) {
+    public static BalanceSheet calculateBalanceSheet(List<JournalEntryWithLines> allEntriesUpTo, EquityStatement equity) {
         BalanceSheet bs = new BalanceSheet();
-        bs.endingCapital = endingCapital;
+        bs.equity = equity;
 
         for (JournalEntryWithLines entry : allEntriesUpTo) {
             for (JournalLineEntity line : entry.lines) {

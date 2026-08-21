@@ -21,9 +21,10 @@ import androidx.room.RoomDatabase;
                 CustomerPaymentEntity.class,
                 CustomerPaymentAllocationEntity.class,
                 ProviderPaymentEntity.class,
-                ProviderPaymentAllocationEntity.class
+                ProviderPaymentAllocationEntity.class,
+                AccountingPeriodEntity.class
         },
-        version = 3,
+        version = 4,
         exportSchema = false
 )
 public abstract class KilgiDatabase extends RoomDatabase {
@@ -45,6 +46,8 @@ public abstract class KilgiDatabase extends RoomDatabase {
     public abstract JournalDao journalDao();
 
     public abstract SalesDao salesDao();
+
+    public abstract AccountingPeriodDao accountingPeriodDao();
 
     public static KilgiDatabase getInstance(Context context) {
         if (instance == null) {

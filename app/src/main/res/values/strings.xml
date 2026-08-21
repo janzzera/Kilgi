@@ -229,4 +229,20 @@
     <string name="label_current_liabilities">Current Liabilities:</string>
     <string name="label_total_liabilities_equity">Total Liabilities and Owner\'s Equity</string>
     <string name="label_less">Less: %1$s</string>
+
+    <string name="period_management_title">Accounting Periods</string>
+    <string name="button_new_period">New Period</string>
+    <string name="label_period_name">Period Name</string>
+    <string name="label_start_date">Start Date</string>
+    <string name="label_end_date">End Date</string>
+    <string name="status_open">OPEN</string>
+    <string name="status_locked">LOCKED</string>
+    <string name="button_lock_period">Lock Period</string>
+    <string name="dialog_new_period_title">Create Accounting Period</string>
+    <string name="dialog_lock_period_title">Close &amp; Lock Period?</string>
+    <string name="dialog_lock_period_message">Locking this period will prevent any new transactions or edits from being recorded within this date range. This action is usually performed after reconciliation.</string>
+    <string name="pre_close_checklist_title">Pre-Close Checklist</string>
+    <string name="check_spoilage">Have you logged all spoilage/shrinkage for this period?</string>
+    <string name="check_reconciliation">Have you performed cash and bank reconciliation?</string>
+    <string name="error_period_locked">Period Locked: This date range is finalized.</string>
 </resources>

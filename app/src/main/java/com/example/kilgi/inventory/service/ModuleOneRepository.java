@@ -3,6 +3,8 @@ package com.example.kilgi.inventory.service;
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.JournalEntryFactory;
 import com.example.kilgi.inventory.accounting.LedgerEntryDraft;
+import com.example.kilgi.inventory.data.AccountingPeriodDao;
+import com.example.kilgi.inventory.data.AccountingPeriodEntity;
 import com.example.kilgi.inventory.data.BatchExpenseEntity;
 import com.example.kilgi.inventory.data.CustomerDao;
 import com.example.kilgi.inventory.data.CustomerEntity;
@@ -51,6 +53,7 @@ public class ModuleOneRepository {
     private final LotDao lotDao;
     private final JournalDao journalDao;
     private final SalesDao salesDao;
+    private final AccountingPeriodDao periodDao;
 
     public ModuleOneRepository(KilgiDatabase database) {
         if (database == null) {
@@ -63,6 +66,31 @@ public class ModuleOneRepository {
         this.lotDao = database.lotDao();
         this.journalDao = database.journalDao();
         this.salesDao = database.salesDao();
+        this.periodDao = database.accountingPeriodDao();
+    }
+
+    private void validatePeriodNotLocked(long timestamp) {
+        String userId = ensureLocalUserExists();
+        if (periodDao.isTimestampLocked(userId, timestamp)) {
+            throw new IllegalStateException("This transaction falls within a locked/closed accounting period. No changes are allowed.");
+        }
+    }
+
+    public List<AccountingPeriodEntity> getAccountingPeriods() {
+        return periodDao.getAllForUser(ensureLocalUserExists());
+    }
+
+    public void createAccountingPeriod(String name, long start, long end) {
+        periodDao.insert(new AccountingPeriodEntity(name, start, end, false, null, ensureLocalUserExists()));
+    }
+
+    public void closeAccountingPeriod(long periodId) {
+        AccountingPeriodEntity period = periodDao.getById(periodId);
+        if (period != null) {
+            period.isClosed = true;
+            period.closedAt = System.currentTimeMillis();
+            periodDao.update(period);
+        }
     }
 
     public ProviderEntity createProvider(String displayName, String contactNumber, String address, String notes) {
@@ -113,6 +141,8 @@ public class ModuleOneRepository {
             double standardFreight,
             PaymentSource freightPaymentSource
     ) {
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         String userId = ensureLocalUserExists();
         ProviderEntity provider = requireProvider(providerId);
         validateRequiredText(vegetableType, "Vegetable type");
@@ -129,7 +159,6 @@ public class ModuleOneRepository {
             throw new IllegalArgumentException("Payment source is required.");
         }
 
-        long now = System.currentTimeMillis();
         LotEntity lot = new LotEntity(
                 UUID.randomUUID().toString(),
                 userId,
@@ -154,6 +183,8 @@ public class ModuleOneRepository {
 
     public void deleteLot(String lotId) {
         validateRequiredText(lotId, "Lot ID");
+        LotEntity lot = requireLot(lotId);
+        validatePeriodNotLocked(lot.timestamp);
         database.runInTransaction(() -> {
             // Expenses and Spoilage logs are deleted by FK CASCADE in the DB
             journalDao.deleteByLotId(lotId);
@@ -163,6 +194,8 @@ public class ModuleOneRepository {
 
     public BatchExpenseEntity addExpense(String lotId, AccountingAccount expenseAccount, double amount, PaymentSource paymentSource) {
         LotEntity lot = requireLot(lotId);
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         if (expenseAccount == null) {
             throw new IllegalArgumentException("Expense account is required.");
         }
@@ -190,6 +223,8 @@ public class ModuleOneRepository {
 
     public SpoilageLogEntity logSpoilage(String lotId, double kilosLost, LossType lossType) {
         LotWithDetails lotWithDetails = requireLotWithDetails(lotId);
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         validatePositiveAmount(kilosLost, "Spoilage kilos");
         if (lossType == null) {
             throw new IllegalArgumentException("Loss type is required.");
@@ -227,6 +262,8 @@ public class ModuleOneRepository {
     }
 
     public RetailSaleEntity recordRetailSale(double totalAmount, String notes) {
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         validatePositiveAmount(totalAmount, "Retail sale amount");
         String userId = ensureLocalUserExists();
         RetailSaleEntity sale = new RetailSaleEntity(
@@ -234,7 +271,7 @@ public class ModuleOneRepository {
                 userId,
                 totalAmount,
                 normalizeOptionalText(notes),
-                System.currentTimeMillis()
+                now
         );
         database.runInTransaction(() -> {
             salesDao.insertRetailSale(sale);
@@ -244,13 +281,14 @@ public class ModuleOneRepository {
     }
 
     public WholesaleInvoiceEntity createWholesaleInvoice(String customerId, String description, double totalAmount, String notes) {
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         validatePositiveAmount(totalAmount, "Invoice amount");
         validateRequiredText(customerId, "Customer");
         validateRequiredText(description, "Invoice description");
 
         String userId = ensureLocalUserExists();
         CustomerEntity customer = requireCustomer(customerId);
-        long now = System.currentTimeMillis();
         WholesaleInvoiceEntity invoice = new WholesaleInvoiceEntity(
                 UUID.randomUUID().toString(),
                 userId,
@@ -270,6 +308,8 @@ public class ModuleOneRepository {
     }
 
     public CustomerCollectionResult collectCustomerPayment(String customerId, double totalAmount, String notes) {
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         validateRequiredText(customerId, "Customer");
         validatePositiveAmount(totalAmount, "Collection amount");
 
@@ -277,7 +317,6 @@ public class ModuleOneRepository {
         CustomerEntity customer = requireCustomer(customerId);
         List<OpenCustomerInvoice> openInvoices = getOpenInvoicesForCustomer(customerId);
         List<PaymentAllocationEngine.AllocationStep> plan = PaymentAllocationEngine.allocate(totalAmount, openInvoices);
-        long now = System.currentTimeMillis();
         CustomerPaymentEntity payment = new CustomerPaymentEntity(
                 UUID.randomUUID().toString(),
                 userId,
@@ -314,6 +353,8 @@ public class ModuleOneRepository {
     }
 
     public ProviderSettlementResult settleProviderBalance(String providerId, double totalAmount, String notes) {
+        long now = System.currentTimeMillis();
+        validatePeriodNotLocked(now);
         validateRequiredText(providerId, "Provider");
         validatePositiveAmount(totalAmount, "Provider payment amount");
 
@@ -321,7 +362,6 @@ public class ModuleOneRepository {
         ProviderEntity provider = requireProvider(providerId);
         List<OpenProviderLotPayable> openPayables = getOpenLotPayablesForProvider(providerId);
         List<PaymentAllocationEngine.AllocationStep> plan = PaymentAllocationEngine.allocate(totalAmount, openPayables);
-        long now = System.currentTimeMillis();
         ProviderPaymentEntity payment = new ProviderPaymentEntity(
                 UUID.randomUUID().toString(),
                 userId,
@@ -358,6 +398,7 @@ public class ModuleOneRepository {
     }
 
     public void postManualAdjustment(long timestamp, AccountingAccount debit, AccountingAccount credit, double amount, String memo) {
+        validatePeriodNotLocked(timestamp);
         String userId = ensureLocalUserExists();
         validatePositiveAmount(amount, "Adjustment amount");
         validateRequiredText(memo, "Memo/Description");
