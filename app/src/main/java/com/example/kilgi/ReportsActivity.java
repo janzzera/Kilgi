@@ -94,6 +94,7 @@ public class ReportsActivity extends AppCompatActivity {
             return;
         }
         bottomNavigationView.setSelectedItemId(R.id.nav_reports);
+        loadReports();
     }
 
     @Override
