@@ -51,4 +51,5 @@ dependencies {
 
     // Add the dependency for the Firebase SDK for Google Analytics
     implementation("com.google.firebase:firebase-analytics")
+    implementation("androidx.security:security-crypto:1.1.0")
 }
