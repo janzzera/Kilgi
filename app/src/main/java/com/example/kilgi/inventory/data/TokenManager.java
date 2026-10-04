@@ -47,6 +47,9 @@ public class TokenManager {
         editor.putString(KEY_JWT_TOKEN, accessToken);
         if(refreshToken != null)
             editor.putString(KEY_REFRESH_TOKEN, refreshToken);
+        else
+            editor.remove(KEY_REFRESH_TOKEN);
+
         editor.apply();
     }
 
@@ -64,7 +67,6 @@ public class TokenManager {
         return securePreferences.getString(KEY_REFRESH_TOKEN, null);
     }
 
-    @Nullable
     public void clearTokens() {
         if(securePreferences == null)
             return;
