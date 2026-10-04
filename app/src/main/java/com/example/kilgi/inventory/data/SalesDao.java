@@ -1,7 +1,9 @@
 package com.example.kilgi.inventory.data;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
 import java.util.List;
@@ -9,32 +11,44 @@ import java.util.List;
 @Dao
 public interface SalesDao {
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertRetailSale(RetailSaleEntity sale);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertRetailSales(List<RetailSaleEntity> sales);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertWholesaleInvoice(WholesaleInvoiceEntity invoice);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertWholesaleInvoices(List<WholesaleInvoiceEntity> invoices);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertCustomerPayment(CustomerPaymentEntity payment);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertCustomerPayments(List<CustomerPaymentEntity> payments);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertCustomerPaymentAllocations(List<CustomerPaymentAllocationEntity> allocations);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertProviderPayment(ProviderPaymentEntity payment);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertProviderPayments(List<ProviderPaymentEntity> payments);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertProviderPaymentAllocations(List<ProviderPaymentAllocationEntity> allocations);
 
     @Query("SELECT * FROM retail_sales WHERE userId = :userId ORDER BY timestamp DESC")
-    List<RetailSaleEntity> getRetailSalesForUser(String userId);
+    LiveData<List<RetailSaleEntity>> getRetailSalesForUser(String userId);
 
     @Query("SELECT * FROM wholesale_invoices WHERE userId = :userId ORDER BY timestamp DESC")
-    List<WholesaleInvoiceEntity> getWholesaleInvoicesForUser(String userId);
+    LiveData<List<WholesaleInvoiceEntity>> getWholesaleInvoicesForUser(String userId);
 
     @Query("SELECT * FROM wholesale_invoices WHERE invoiceId = :invoiceId LIMIT 1")
-    WholesaleInvoiceEntity getInvoiceById(String invoiceId);
+    LiveData<WholesaleInvoiceEntity> getInvoiceById(String invoiceId);
 
     @Query(
             "SELECT c.customerId AS customerId, c.displayName AS displayName, " +
@@ -52,7 +66,7 @@ public interface SalesDao {
                     "GROUP BY c.customerId, c.displayName " +
                     "ORDER BY c.displayName COLLATE NOCASE ASC"
     )
-    List<CustomerLedgerSummary> getCustomerLedgerSummaries(String userId);
+    LiveData<List<CustomerLedgerSummary>> getCustomerLedgerSummaries(String userId);
 
     @Query(
             "SELECT i.invoiceId AS invoiceId, i.customerId AS customerId, i.invoiceNumber AS invoiceNumber, " +
@@ -65,7 +79,7 @@ public interface SalesDao {
                     "HAVING outstandingBalance > 0.0000001 " +
                     "ORDER BY i.timestamp ASC, i.invoiceNumber ASC"
     )
-    List<OpenCustomerInvoice> getOpenInvoicesForCustomer(String customerId);
+    LiveData<List<OpenCustomerInvoice>> getOpenInvoicesForCustomer(String customerId);
 
     @Query(
             "SELECT p.providerId AS providerId, p.displayName AS displayName, " +
@@ -84,7 +98,7 @@ public interface SalesDao {
                     "GROUP BY p.providerId, p.displayName " +
                     "ORDER BY p.displayName COLLATE NOCASE ASC"
     )
-    List<ProviderLedgerSummary> getProviderLedgerSummaries(String userId);
+    LiveData<List<ProviderLedgerSummary>> getProviderLedgerSummaries(String userId);
 
     @Query(
             "SELECT l.lotId AS lotId, l.providerId AS providerId, l.providerName AS providerName, l.vegetableType AS vegetableType, l.timestamp AS timestamp, " +
@@ -99,6 +113,6 @@ public interface SalesDao {
                     "HAVING originalPayableAmount > 0.0000001 AND outstandingBalance > 0.0000001 " +
                     "ORDER BY l.timestamp ASC, l.lotId ASC"
     )
-    List<OpenProviderLotPayable> getOpenLotPayablesForProvider(String providerId);
+    LiveData<List<OpenProviderLotPayable>> getOpenLotPayablesForProvider(String providerId);
 }
 
