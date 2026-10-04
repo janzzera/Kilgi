@@ -13,17 +13,16 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.kilgi.inventory.data.AccountingPeriodEntity;
-import com.example.kilgi.inventory.data.KilgiDatabase;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.example.kilgi.inventory.viewmodel.AccountingPeriodViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.DateFormat;
@@ -31,14 +30,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class PeriodManagementActivity extends AppCompatActivity {
 
     private final DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault());
-    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
-    private ModuleOneRepository repository;
+    private AccountingPeriodViewModel viewModel;
     private PeriodAdapter adapter;
 
     @Override
@@ -52,28 +48,19 @@ public class PeriodManagementActivity extends AppCompatActivity {
             return insets;
         });
 
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        viewModel = new ViewModelProvider(this).get(AccountingPeriodViewModel.class);
         RecyclerView recyclerView = findViewById(R.id.recycler_periods);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new PeriodAdapter();
         recyclerView.setAdapter(adapter);
 
-        findViewById(R.id.button_add_period).setOnClickListener(v -> showCreatePeriodDialog());
-
-        loadPeriods();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        ioExecutor.shutdown();
-    }
-
-    private void loadPeriods() {
-        ioExecutor.execute(() -> {
-            List<AccountingPeriodEntity> periods = repository.getAccountingPeriods();
-            runOnUiThread(() -> adapter.setPeriods(periods));
+        viewModel.getAllPeriods().observe(this, periods -> {
+            if (periods != null) {
+                adapter.setPeriods(periods);
+            }
         });
+
+        findViewById(R.id.button_add_period).setOnClickListener(v -> showCreatePeriodDialog());
     }
 
     private void showCreatePeriodDialog() {
@@ -109,10 +96,7 @@ public class PeriodManagementActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.dialog_save, (d, w) -> {
                     String name = nameInput.getText().toString();
                     if (name.isEmpty()) return;
-                    ioExecutor.execute(() -> {
-                        repository.createAccountingPeriod(name, start.getTimeInMillis(), end.getTimeInMillis());
-                        loadPeriods();
-                    });
+                    viewModel.createAccountingPeriod(name, start.getTimeInMillis(), end.getTimeInMillis(), null);
                 }).show();
     }
 
@@ -127,10 +111,7 @@ public class PeriodManagementActivity extends AppCompatActivity {
                 .setNegativeButton(R.string.dialog_cancel, null)
                 .setPositiveButton(R.string.button_lock_period, (d, w) -> {
                     if (chkSpoilage.isChecked() && chkRecon.isChecked()) {
-                        ioExecutor.execute(() -> {
-                            repository.closeAccountingPeriod(period.periodId);
-                            loadPeriods();
-                        });
+                        viewModel.closeAccountingPeriod(period.periodId, null);
                     } else {
                         Toast.makeText(this, "Please complete all checklist items first.", Toast.LENGTH_LONG).show();
                     }

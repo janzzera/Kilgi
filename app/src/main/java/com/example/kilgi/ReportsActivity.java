@@ -4,9 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -17,11 +15,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.accounting.AccountingSummaryService;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
-import com.example.kilgi.inventory.data.KilgiDatabase;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.example.kilgi.inventory.viewmodel.JournalViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -50,7 +48,7 @@ public class ReportsActivity extends AppCompatActivity {
     private TableLayout bsTable;
     private BottomNavigationView bottomNavigationView;
 
-    private ModuleOneRepository repository;
+    private JournalViewModel journalViewModel;
     private final List<Integer> yearOptions = new ArrayList<>();
     private ArrayAdapter<Integer> yearAdapter;
 
@@ -65,7 +63,7 @@ public class ReportsActivity extends AppCompatActivity {
             return insets;
         });
 
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        journalViewModel = new ViewModelProvider(this).get(JournalViewModel.class);
         bindViews();
         setupNavigation();
         setupPeriodSpinners();
@@ -165,15 +163,18 @@ public class ReportsActivity extends AppCompatActivity {
 
     private void loadInitialReports() {
         ioExecutor.execute(() -> {
-            long oldest = repository.getOldestJournalEntryTimestamp();
-            long latest = repository.getLatestJournalEntryTimestamp();
+            Long oldest = journalViewModel.getOldestTimestampSync();
+            Long latest = journalViewModel.getLatestTimestampSync();
+            long oldestVal = oldest == null ? System.currentTimeMillis() : oldest;
+            long latestVal = latest == null ? System.currentTimeMillis() : latest;
+
             Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(latest);
+            c.setTimeInMillis(latestVal);
             final int m = c.get(Calendar.MONTH) + 1;
             final int y = c.get(Calendar.YEAR);
             
             Calendar oc = Calendar.getInstance();
-            oc.setTimeInMillis(oldest);
+            oc.setTimeInMillis(oldestVal);
             final int minYear = oc.get(Calendar.YEAR);
 
             runOnUiThread(() -> {
@@ -197,8 +198,8 @@ public class ReportsActivity extends AppCompatActivity {
                 startCal.set(finalYear, month - 1, 1);
                 long periodStart = startCal.getTimeInMillis();
 
-                List<JournalEntryWithLines> periodEntries = repository.getJournalEntriesForPeriod(month, finalYear);
-                List<JournalEntryWithLines> allUpTo = repository.getJournalEntriesUpTo(month, finalYear);
+                List<JournalEntryWithLines> periodEntries = journalViewModel.getEntriesForPeriodSync(month, finalYear);
+                List<JournalEntryWithLines> allUpTo = journalViewModel.getEntriesUpToSync(month, finalYear);
 
                 AccountingSummaryService.IncomeStatement is = AccountingSummaryService.calculateIncomeStatement(periodEntries);
                 AccountingSummaryService.EquityStatement es = AccountingSummaryService.calculateEquityStatement(allUpTo, periodStart);

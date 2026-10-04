@@ -1,7 +1,7 @@
 package com.example.kilgi;
 
-import android.content.Intent;
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -21,21 +21,25 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.AccountingCatalog;
-import com.example.kilgi.inventory.data.KilgiDatabase;
+import com.example.kilgi.inventory.data.BatchExpenseEntity;
 import com.example.kilgi.inventory.data.LossType;
 import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.data.LotWithDetails;
 import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderEntity;
-import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.data.SpoilageLogEntity;
 import com.example.kilgi.inventory.input.InventoryInputParser;
+import com.example.kilgi.inventory.repository.LotRepository;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
 import com.example.kilgi.inventory.service.BatchValuationSnapshot;
 import com.example.kilgi.inventory.service.LotFilterUtils;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.example.kilgi.inventory.viewmodel.LotViewModel;
+import com.example.kilgi.inventory.viewmodel.ProviderViewModel;
+import com.example.kilgi.inventory.viewmodel.UserViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -76,7 +80,10 @@ public class MainActivity extends AppCompatActivity {
     private Button logSpoilageButton;
     private BottomNavigationView bottomNavigationView;
 
-    private ModuleOneRepository repository;
+    private UserViewModel userViewModel;
+    private LotViewModel lotViewModel;
+    private ProviderViewModel providerViewModel;
+
     private String initialLotId;
     private String currentSelectedLotId;
     private Long selectedFromDateMillis;
@@ -88,11 +95,17 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean isDashboardRefreshing = false;
     public static boolean isUserAuthenticated = false;
 
+    private List<ProviderEntity> cachedProviders = new ArrayList<>();
+    private List<LotEntity> cachedAllLots = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        lotViewModel = new ViewModelProvider(this).get(LotViewModel.class);
+        providerViewModel = new ViewModelProvider(this).get(ProviderViewModel.class);
+
         checkAuthentication();
 
         EdgeToEdge.enable(this);
@@ -104,13 +117,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         initialLotId = getIntent().getStringExtra(JournalActivity.EXTRA_LOT_ID);
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         bindViews();
         setupNavigation();
         initializeLotFilterState();
         bindActions();
         updateLotActionButtons(false);
-        loadInitialDashboard();
+        observeViewModels();
     }
 
     @Override
@@ -121,26 +133,35 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         bottomNavigationView.setSelectedItemId(R.id.nav_inventory);
-        loadInitialDashboard();
+    }
+
+    private void observeViewModels() {
+        providerViewModel.getActiveProviders().observe(this, providers -> {
+            if (providers != null) {
+                cachedProviders = providers;
+            }
+        });
+
+        lotViewModel.getAllLots().observe(this, lots -> {
+            if (lots != null) {
+                cachedAllLots = lots;
+                refreshDashboardAsync(currentSelectedLotId, null, null, null, currentLotPageIndex, true);
+            }
+        });
     }
 
     private void checkAuthentication() {
-        new Thread(() -> {
-            UserEntity user = repository.getUser(ModuleOneRepository.LOCAL_USER_ID);
+        userViewModel.getLocalUser().observe(this, user -> {
             if (user == null || "PENDING_LOGIN_SETUP".equals(user.passwordHash)) {
-                runOnUiThread(() -> {
-                    startActivity(new Intent(this, UserSetupActivity.class));
-                    finish();
-                });
+                startActivity(new Intent(this, UserSetupActivity.class));
+                finish();
             } else if (!isUserAuthenticated) {
-                runOnUiThread(() -> {
-                    startActivity(new Intent(this, LoginActivity.class));
-                    finish();
-                });
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
             } else {
                 isUserAuthenticated = true;
             }
-        }).start();
+        });
     }
 
     @Override
@@ -264,17 +285,6 @@ public class MainActivity extends AppCompatActivity {
         refreshDashboardAsync(null, null, null, null, pageIndex, false);
     }
 
-    private void loadInitialDashboard() {
-        ioExecutor.execute(() -> {
-            String targetLotId = initialLotId;
-            if (TextUtils.isEmpty(targetLotId)) {
-                LotEntity latestLot = repository.getLatestLot();
-                targetLotId = latestLot == null ? null : latestLot.lotId;
-            }
-            refreshDashboardOnWorker(targetLotId, null, null, null, null, null, true);
-        });
-    }
-
     private void refreshDashboardAsync(String targetLotId, String batchStatus, String expenseStatus, String spoilageStatus) {
         refreshDashboardAsync(targetLotId, batchStatus, expenseStatus, spoilageStatus, null, true);
     }
@@ -299,10 +309,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCreateLotDialog() {
-        showCreateLotDialog(new ArrayList<>());
-    }
-
-    private void showCreateLotDialog(List<ProviderEntity> providers) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_lot, null, false);
         Spinner providerSpinner = dialogView.findViewById(R.id.spinner_provider);
         EditText vegetableTypeInput = dialogView.findViewById(R.id.edit_vegetable_type);
@@ -313,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
         EditText standardFreightInput = dialogView.findViewById(R.id.edit_standard_freight);
         Spinner freightSourceSpinner = dialogView.findViewById(R.id.spinner_freight_payment_source);
 
-        providerSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, providers));
+        providerSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cachedProviders));
         purchaseSourceSpinner.setAdapter(buildPaymentSourceAdapter());
         freightSourceSpinner.setAdapter(buildPaymentSourceAdapter());
         purchaseSourceSpinner.setSelection(PaymentSource.ACCOUNTS_PAYABLE.ordinal());
@@ -340,44 +346,37 @@ public class MainActivity extends AppCompatActivity {
                 PaymentSource purchaseSource = (PaymentSource) purchaseSourceSpinner.getSelectedItem();
                 PaymentSource freightSource = (PaymentSource) freightSourceSpinner.getSelectedItem();
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        LotEntity lot = repository.createLot(
-                                provider.providerId,
-                                vegetableType,
-                                totalSacks,
-                                rawKilos,
-                                baseUnitPrice,
-                                purchaseSource,
-                                standardFreight,
-                                freightSource
-                        );
-                        refreshDashboardOnWorker(
-                                lot.lotId,
-                                getString(R.string.batch_created_message, abbreviateLotId(lot.lotId)),
-                                getString(R.string.expense_status_idle),
-                                getString(R.string.spoilage_status_idle),
-                                null,
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(exception.getMessage(), null, null, null);
-                    }
-                });
+
+                lotViewModel.createLot(
+                        provider.providerId,
+                        vegetableType,
+                        totalSacks,
+                        rawKilos,
+                        baseUnitPrice,
+                        purchaseSource,
+                        standardFreight,
+                        freightSource,
+                        new LotRepository.Callback<LotEntity>() {
+                            @Override
+                            public void onSuccess(LotEntity lot) {
+                                runOnUiThread(() -> postStatuses(
+                                        getString(R.string.batch_created_message, abbreviateLotId(lot.lotId)),
+                                        getString(R.string.expense_status_idle),
+                                        getString(R.string.spoilage_status_idle),
+                                        null
+                                ));
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                runOnUiThread(() -> postStatuses(throwable.getMessage(), null, null, null));
+                            }
+                        }
+                );
             } catch (IllegalArgumentException exception) {
                 batchStatusView.setText(exception.getMessage());
             }
         }));
-        
-        if (providers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<ProviderEntity> fetched = repository.getProviders();
-                runOnUiThread(() -> {
-                    providerSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fetched));
-                });
-            });
-        }
         
         dialog.show();
     }
@@ -414,20 +413,21 @@ public class MainActivity extends AppCompatActivity {
                 PaymentSource paymentSource = (PaymentSource) paymentSourceSpinner.getSelectedItem();
                 String lotId = currentSelectedLotId;
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        repository.addExpense(lotId, expenseAccount, amount, paymentSource);
-                        refreshDashboardOnWorker(
-                                lotId,
+
+                lotViewModel.addExpense(lotId, expenseAccount, amount, paymentSource, new LotRepository.Callback<BatchExpenseEntity>() {
+                    @Override
+                    public void onSuccess(BatchExpenseEntity expense) {
+                        runOnUiThread(() -> postStatuses(
                                 null,
                                 getString(R.string.expense_added_message, expenseAccount == null ? "" : expenseAccount.getName()),
                                 null,
-                                null,
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, exception.getMessage(), null, null);
+                                null
+                        ));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> postStatuses(null, throwable.getMessage(), null, null));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -465,23 +465,19 @@ public class MainActivity extends AppCompatActivity {
                 LossType lossType = (LossType) lossTypeSpinner.getSelectedItem();
                 String lotId = currentSelectedLotId;
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        repository.logSpoilage(lotId, kilosLost, lossType);
+
+                lotViewModel.logSpoilage(lotId, kilosLost, lossType, new LotRepository.Callback<SpoilageLogEntity>() {
+                    @Override
+                    public void onSuccess(SpoilageLogEntity log) {
                         String message = lossType == LossType.NORMAL
                                 ? getString(R.string.spoilage_logged_message, formatWeight(kilosLost))
                                 : getString(R.string.abnormal_spoilage_logged_message, formatWeight(kilosLost));
-                        refreshDashboardOnWorker(
-                                lotId,
-                                null,
-                                null,
-                                message,
-                                null,
-                                null,
-                                true
-                        );
-                    } catch (Exception exception) {
-                        postStatuses(null, null, exception.getMessage(), null);
+                        runOnUiThread(() -> postStatuses(null, null, message, null));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> postStatuses(null, null, throwable.getMessage(), null));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -544,7 +540,7 @@ public class MainActivity extends AppCompatActivity {
         isDashboardRefreshing = true;
 
         try {
-            List<LotEntity> allLots = repository.getAllLots();
+            List<LotEntity> allLots = cachedAllLots;
 
             boolean shouldResetFilter = false;
             if (keepTargetLotVisible && !TextUtils.isEmpty(targetLotId)) {
@@ -654,7 +650,8 @@ public class MainActivity extends AppCompatActivity {
             if (!LotFilterUtils.matchesDateRange(lot.timestamp, fromMillis, toMillis)) {
                 continue;
             }
-            LotWithDetails lotWithDetails = repository.getLotWithDetails(lot.lotId);
+            LotWithDetails lotWithDetails = lotViewModel.getLotWithDetails(lot.lotId).getValue();
+            if (lotWithDetails == null) continue;
             BatchValuationSnapshot snapshot = BatchValuationEngine.calculate(
                     lotWithDetails.lot,
                     lotWithDetails.expenses,
@@ -927,13 +924,18 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage(getString(R.string.dialog_delete_lot_message, abbreviateLotId(lotId)))
                 .setNegativeButton(R.string.dialog_cancel, null)
                 .setPositiveButton(R.string.dialog_delete, (dialog, which) -> {
-                    ioExecutor.execute(() -> {
-                        try {
-                            repository.deleteLot(lotId);
-                            String message = getString(R.string.lot_deleted_message, abbreviateLotId(lotId));
-                            refreshDashboardOnWorker(null, message, null, null, null, null, false);
-                        } catch (Exception exception) {
-                            postStatuses(exception.getMessage(), null, null, null);
+                    lotViewModel.deleteLot(lotId, new LotRepository.Callback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            runOnUiThread(() -> {
+                                String message = getString(R.string.lot_deleted_message, abbreviateLotId(lotId));
+                                refreshDashboardOnWorker(null, message, null, null, null, null, false);
+                            });
+                        }
+
+                        @Override
+                        public void onError(Throwable throwable) {
+                            runOnUiThread(() -> postStatuses(throwable.getMessage(), null, null, null));
                         }
                     });
                 })

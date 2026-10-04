@@ -21,15 +21,28 @@ public interface LotDao {
     @Query("SELECT * FROM lots WHERE userId = :userId ORDER BY timestamp DESC")
     LiveData<List<LotEntity>> getAllLotsForUser(String userId);
 
+    @Query("SELECT * FROM lots WHERE userId = :userId ORDER BY timestamp DESC")
+    List<LotEntity> getAllLotsForUserSync(String userId);
+
     @Query("SELECT * FROM lots WHERE lotId = :lotId AND userId = :userId LIMIT 1")
     LiveData<LotEntity> getLotById(String lotId, String userId);
+
+    @Query("SELECT * FROM lots WHERE lotId = :lotId AND userId = :userId LIMIT 1")
+    LotEntity getLotByIdSync(String lotId, String userId);
 
     @Query("SELECT * FROM lots WHERE userId = :userId ORDER BY timestamp DESC LIMIT 1")
     LiveData<LotEntity> getLatestLot(String userId);
 
+    @Query("SELECT * FROM lots WHERE userId = :userId ORDER BY timestamp DESC LIMIT 1")
+    LotEntity getLatestLotSync(String userId);
+
     @Transaction
     @Query("SELECT * FROM lots WHERE lotId = :lotId AND userId = :userId LIMIT 1")
     LiveData<LotWithDetails> getLotWithDetails(String lotId, String userId);
+
+    @Transaction
+    @Query("SELECT * FROM lots WHERE lotId = :lotId AND userId = :userId LIMIT 1")
+    LotWithDetails getLotWithDetailsSync(String lotId, String userId);
 
     @Query("DELETE FROM lots WHERE lotId = :lotId")
     void deleteById(String lotId);

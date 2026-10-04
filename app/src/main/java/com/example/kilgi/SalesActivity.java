@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -18,34 +17,37 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.data.CustomerEntity;
 import com.example.kilgi.inventory.data.CustomerLedgerSummary;
-import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.OpenCustomerInvoice;
 import com.example.kilgi.inventory.data.OpenProviderLotPayable;
 import com.example.kilgi.inventory.data.ProviderEntity;
 import com.example.kilgi.inventory.data.ProviderLedgerSummary;
+import com.example.kilgi.inventory.data.RetailSaleEntity;
+import com.example.kilgi.inventory.data.WholesaleInvoiceEntity;
 import com.example.kilgi.inventory.input.InventoryInputParser;
+import com.example.kilgi.inventory.repository.CustomerRepository;
+import com.example.kilgi.inventory.repository.ProviderRepository;
+import com.example.kilgi.inventory.repository.SalesRepository;
 import com.example.kilgi.inventory.service.CustomerCollectionResult;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
 import com.example.kilgi.inventory.service.ProviderSettlementResult;
+import com.example.kilgi.inventory.viewmodel.CustomerViewModel;
+import com.example.kilgi.inventory.viewmodel.ProviderViewModel;
+import com.example.kilgi.inventory.viewmodel.SalesViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class SalesActivity extends AppCompatActivity {
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "PH"));
-    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
     private MaterialToolbar topAppBar;
     private TextView totalReceivablesView;
@@ -54,7 +56,14 @@ public class SalesActivity extends AppCompatActivity {
     private TextView salesSummaryView;
     private BottomNavigationView bottomNavigationView;
 
-    private ModuleOneRepository repository;
+    private CustomerViewModel customerViewModel;
+    private ProviderViewModel providerViewModel;
+    private SalesViewModel salesViewModel;
+
+    private List<CustomerLedgerSummary> cachedCustomerSummaries = new ArrayList<>();
+    private List<ProviderLedgerSummary> cachedProviderSummaries = new ArrayList<>();
+    private List<CustomerEntity> cachedCustomers = new ArrayList<>();
+    private List<ProviderEntity> cachedProviders = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,15 +72,18 @@ public class SalesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sales);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0); // Bottom padding handled by Nav
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
 
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        customerViewModel = new ViewModelProvider(this).get(CustomerViewModel.class);
+        providerViewModel = new ViewModelProvider(this).get(ProviderViewModel.class);
+        salesViewModel = new ViewModelProvider(this).get(SalesViewModel.class);
+
         bindViews();
         setupNavigation();
         bindActions();
-        refreshSalesData();
+        observeViewModels();
     }
 
     @Override
@@ -83,13 +95,6 @@ public class SalesActivity extends AppCompatActivity {
             return;
         }
         bottomNavigationView.setSelectedItemId(R.id.nav_sales);
-        refreshSalesData();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        ioExecutor.shutdown();
     }
 
     private void bindViews() {
@@ -129,27 +134,44 @@ public class SalesActivity extends AppCompatActivity {
         findViewById(R.id.button_settle_provider).setOnClickListener(v -> showProviderSettlementDialog());
     }
 
-    private void refreshSalesData() {
-        ioExecutor.execute(() -> {
-            List<CustomerLedgerSummary> customerSummaries = repository.getCustomerLedgerSummaries();
-            List<ProviderLedgerSummary> providerSummaries = repository.getProviderLedgerSummaries();
-            
-            double totalReceivables = 0;
-            for (CustomerLedgerSummary s : customerSummaries) totalReceivables += s.outstandingBalance;
-            
-            double totalPayables = 0;
-            for (ProviderLedgerSummary s : providerSummaries) totalPayables += s.outstandingBalance;
-
-            final double finalReceivables = totalReceivables;
-            final double finalPayables = totalPayables;
-            final String summaryText = buildSalesSummaryText(customerSummaries, providerSummaries);
-
-            runOnUiThread(() -> {
-                totalReceivablesView.setText(currencyFormat.format(finalReceivables));
-                totalPayablesView.setText(currencyFormat.format(finalPayables));
-                salesSummaryView.setText(summaryText);
-            });
+    private void observeViewModels() {
+        customerViewModel.getLedgerSummaries().observe(this, summaries -> {
+            if (summaries != null) {
+                cachedCustomerSummaries = summaries;
+                updateTotalsAndSummary();
+            }
         });
+
+        providerViewModel.getLedgerSummaries().observe(this, summaries -> {
+            if (summaries != null) {
+                cachedProviderSummaries = summaries;
+                updateTotalsAndSummary();
+            }
+        });
+
+        customerViewModel.getActiveCustomers().observe(this, customers -> {
+            if (customers != null) {
+                cachedCustomers = customers;
+            }
+        });
+
+        providerViewModel.getActiveProviders().observe(this, providers -> {
+            if (providers != null) {
+                cachedProviders = providers;
+            }
+        });
+    }
+
+    private void updateTotalsAndSummary() {
+        double totalReceivables = 0;
+        for (CustomerLedgerSummary s : cachedCustomerSummaries) totalReceivables += s.outstandingBalance;
+
+        double totalPayables = 0;
+        for (ProviderLedgerSummary s : cachedProviderSummaries) totalPayables += s.outstandingBalance;
+
+        totalReceivablesView.setText(currencyFormat.format(totalReceivables));
+        totalPayablesView.setText(currencyFormat.format(totalPayables));
+        salesSummaryView.setText(buildSalesSummaryText(cachedCustomerSummaries, cachedProviderSummaries));
     }
 
     private String buildSalesSummaryText(List<CustomerLedgerSummary> customerSummaries, List<ProviderLedgerSummary> providerSummaries) {
@@ -209,15 +231,15 @@ public class SalesActivity extends AppCompatActivity {
                 String address = addressInput.getText().toString();
                 String notes = notesInput.getText().toString();
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        ProviderEntity provider = repository.createProvider(displayName, contact, address, notes);
-                        runOnUiThread(() -> {
-                            salesStatusView.setText(getString(R.string.provider_created_message, provider.displayName));
-                            refreshSalesData();
-                        });
-                    } catch (Exception exception) {
-                        runOnUiThread(() -> salesStatusView.setText(exception.getMessage()));
+                providerViewModel.createProvider(displayName, contact, address, notes, new ProviderRepository.Callback<ProviderEntity>() {
+                    @Override
+                    public void onSuccess(ProviderEntity provider) {
+                        runOnUiThread(() -> salesStatusView.setText(getString(R.string.provider_created_message, provider.displayName)));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> salesStatusView.setText(throwable.getMessage()));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -248,15 +270,15 @@ public class SalesActivity extends AppCompatActivity {
                 String address = addressInput.getText().toString();
                 String notes = notesInput.getText().toString();
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        CustomerEntity customer = repository.createCustomer(displayName, contact, address, notes);
-                        runOnUiThread(() -> {
-                            salesStatusView.setText(getString(R.string.customer_created_message, customer.displayName));
-                            refreshSalesData();
-                        });
-                    } catch (Exception exception) {
-                        runOnUiThread(() -> salesStatusView.setText(exception.getMessage()));
+                customerViewModel.createCustomer(displayName, contact, address, notes, new CustomerRepository.Callback<CustomerEntity>() {
+                    @Override
+                    public void onSuccess(CustomerEntity customer) {
+                        runOnUiThread(() -> salesStatusView.setText(getString(R.string.customer_created_message, customer.displayName)));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> salesStatusView.setText(throwable.getMessage()));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -283,15 +305,15 @@ public class SalesActivity extends AppCompatActivity {
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Retail sale amount");
                 String notes = notesInput.getText().toString();
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        repository.recordRetailSale(amount, notes);
-                        runOnUiThread(() -> {
-                            salesStatusView.setText(getString(R.string.retail_sale_logged_message, currencyFormat.format(amount)));
-                            refreshSalesData();
-                        });
-                    } catch (Exception exception) {
-                        runOnUiThread(() -> salesStatusView.setText(exception.getMessage()));
+                salesViewModel.recordRetailSale(amount, notes, new SalesRepository.Callback<RetailSaleEntity>() {
+                    @Override
+                    public void onSuccess(RetailSaleEntity result) {
+                        runOnUiThread(() -> salesStatusView.setText(getString(R.string.retail_sale_logged_message, currencyFormat.format(amount))));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> salesStatusView.setText(throwable.getMessage()));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -302,17 +324,13 @@ public class SalesActivity extends AppCompatActivity {
     }
 
     private void showWholesaleInvoiceDialog() {
-        showWholesaleInvoiceDialog(new ArrayList<>());
-    }
-
-    private void showWholesaleInvoiceDialog(List<CustomerEntity> customers) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_wholesale_invoice, null, false);
         Spinner customerSpinner = dialogView.findViewById(R.id.spinner_invoice_customer);
         EditText descriptionInput = dialogView.findViewById(R.id.edit_invoice_description);
         EditText amountInput = dialogView.findViewById(R.id.edit_invoice_amount);
         EditText notesInput = dialogView.findViewById(R.id.edit_invoice_notes);
 
-        customerSpinner.setAdapter(buildCustomerAdapter(customers));
+        customerSpinner.setAdapter(buildCustomerAdapter(cachedCustomers));
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.dialog_wholesale_invoice_title)
@@ -331,15 +349,15 @@ public class SalesActivity extends AppCompatActivity {
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Invoice amount");
                 String notes = notesInput.getText().toString();
                 dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        var invoice = repository.createWholesaleInvoice(customer.customerId, description, amount, notes);
-                        runOnUiThread(() -> {
-                            salesStatusView.setText(getString(R.string.wholesale_invoice_created_message, invoice.invoiceNumber, customer.displayName));
-                            refreshSalesData();
-                        });
-                    } catch (Exception exception) {
-                        runOnUiThread(() -> salesStatusView.setText(exception.getMessage()));
+                salesViewModel.createWholesaleInvoice(customer.customerId, description, amount, notes, new SalesRepository.Callback<WholesaleInvoiceEntity>() {
+                    @Override
+                    public void onSuccess(WholesaleInvoiceEntity invoice) {
+                        runOnUiThread(() -> salesStatusView.setText(getString(R.string.wholesale_invoice_created_message, invoice.invoiceNumber, customer.displayName)));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> salesStatusView.setText(throwable.getMessage()));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -347,28 +365,17 @@ public class SalesActivity extends AppCompatActivity {
             }
         }));
         
-        if (customers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<CustomerEntity> fetched = repository.getCustomers();
-                runOnUiThread(() -> customerSpinner.setAdapter(buildCustomerAdapter(fetched)));
-            });
-        }
-        
         dialog.show();
     }
 
     private void showCustomerCollectionDialog() {
-        showCustomerCollectionDialog(new ArrayList<>());
-    }
-
-    private void showCustomerCollectionDialog(List<CustomerEntity> customers) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_collect_customer_payment, null, false);
         Spinner customerSpinner = dialogView.findViewById(R.id.spinner_collection_customer);
         TextView breakdownView = dialogView.findViewById(R.id.text_customer_collection_breakdown);
         EditText amountInput = dialogView.findViewById(R.id.edit_customer_collection_amount);
         EditText notesInput = dialogView.findViewById(R.id.edit_customer_collection_notes);
 
-        customerSpinner.setAdapter(buildCustomerAdapter(customers));
+        customerSpinner.setAdapter(buildCustomerAdapter(cachedCustomers));
         bindCustomerBreakdownLoader(customerSpinner, breakdownView);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
@@ -386,16 +393,21 @@ public class SalesActivity extends AppCompatActivity {
                 }
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Collection amount");
                 String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        CustomerCollectionResult result = repository.collectCustomerPayment(customer.customerId, amount, notes);
-                        runOnUiThread(() -> {
-                            salesStatusView.setText(getString(R.string.customer_collection_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), customer.displayName, result.allocations.size()));
-                            refreshSalesData();
+
+                customerViewModel.getOpenInvoicesForCustomer(customer.customerId).observe(this, invoices -> {
+                    if (invoices != null) {
+                        dialog.dismiss();
+                        customerViewModel.collectCustomerPayment(customer.customerId, amount, notes, invoices, new CustomerRepository.Callback<CustomerCollectionResult>() {
+                            @Override
+                            public void onSuccess(CustomerCollectionResult result) {
+                                runOnUiThread(() -> salesStatusView.setText(getString(R.string.customer_collection_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), customer.displayName, result.allocations.size())));
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                runOnUiThread(() -> salesStatusView.setText(throwable.getMessage()));
+                            }
                         });
-                    } catch (Exception exception) {
-                        runOnUiThread(() -> salesStatusView.setText(exception.getMessage()));
                     }
                 });
             } catch (IllegalArgumentException exception) {
@@ -403,28 +415,17 @@ public class SalesActivity extends AppCompatActivity {
             }
         }));
         
-        if (customers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<CustomerEntity> fetched = repository.getCustomers();
-                runOnUiThread(() -> customerSpinner.setAdapter(buildCustomerAdapter(fetched)));
-            });
-        }
-        
         dialog.show();
     }
 
     private void showProviderSettlementDialog() {
-        showProviderSettlementDialog(new ArrayList<>());
-    }
-
-    private void showProviderSettlementDialog(List<ProviderEntity> providers) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_settle_provider_payment, null, false);
         Spinner providerSpinner = dialogView.findViewById(R.id.spinner_settlement_provider);
         TextView breakdownView = dialogView.findViewById(R.id.text_provider_settlement_breakdown);
         EditText amountInput = dialogView.findViewById(R.id.edit_provider_settlement_amount);
         EditText notesInput = dialogView.findViewById(R.id.edit_provider_settlement_notes);
 
-        providerSpinner.setAdapter(buildProviderAdapter(providers));
+        providerSpinner.setAdapter(buildProviderAdapter(cachedProviders));
         bindProviderBreakdownLoader(providerSpinner, breakdownView);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
@@ -442,29 +443,27 @@ public class SalesActivity extends AppCompatActivity {
                 }
                 double amount = InventoryInputParser.parseRequiredPositiveDouble(amountInput.getText().toString(), "Provider payment amount");
                 String notes = notesInput.getText().toString();
-                dialog.dismiss();
-                ioExecutor.execute(() -> {
-                    try {
-                        ProviderSettlementResult result = repository.settleProviderBalance(provider.providerId, amount, notes);
-                        runOnUiThread(() -> {
-                            salesStatusView.setText(getString(R.string.provider_settlement_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), provider.displayName, result.allocations.size()));
-                            refreshSalesData();
+
+                providerViewModel.getOpenLotPayablesForProvider(provider.providerId).observe(this, payables -> {
+                    if (payables != null) {
+                        dialog.dismiss();
+                        providerViewModel.settleProviderBalance(provider.providerId, amount, notes, payables, new ProviderRepository.Callback<ProviderSettlementResult>() {
+                            @Override
+                            public void onSuccess(ProviderSettlementResult result) {
+                                runOnUiThread(() -> salesStatusView.setText(getString(R.string.provider_settlement_logged_message, currencyFormat.format(result.getTotalAllocatedAmount()), provider.displayName, result.allocations.size())));
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                runOnUiThread(() -> salesStatusView.setText(throwable.getMessage()));
+                            }
                         });
-                    } catch (Exception exception) {
-                        runOnUiThread(() -> salesStatusView.setText(exception.getMessage()));
                     }
                 });
             } catch (IllegalArgumentException exception) {
                 salesStatusView.setText(exception.getMessage());
             }
         }));
-        
-        if (providers.isEmpty()) {
-            ioExecutor.execute(() -> {
-                List<ProviderEntity> fetched = repository.getProviders();
-                runOnUiThread(() -> providerSpinner.setAdapter(buildProviderAdapter(fetched)));
-            });
-        }
         
         dialog.show();
     }
@@ -487,10 +486,9 @@ public class SalesActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 CustomerEntity customer = (CustomerEntity) parent.getItemAtPosition(position);
                 if (customer == null) return;
-                ioExecutor.execute(() -> {
-                    List<OpenCustomerInvoice> invoices = repository.getOpenInvoicesForCustomer(customer.customerId);
+                customerViewModel.getOpenInvoicesForCustomer(customer.customerId).observe(SalesActivity.this, invoices -> {
                     String breakdown = buildCustomerBreakdownText(invoices);
-                    runOnUiThread(() -> breakdownView.setText(breakdown));
+                    breakdownView.setText(breakdown);
                 });
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
@@ -503,10 +501,9 @@ public class SalesActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 ProviderEntity provider = (ProviderEntity) parent.getItemAtPosition(position);
                 if (provider == null) return;
-                ioExecutor.execute(() -> {
-                    List<OpenProviderLotPayable> payables = repository.getOpenLotPayablesForProvider(provider.providerId);
+                providerViewModel.getOpenLotPayablesForProvider(provider.providerId).observe(SalesActivity.this, payables -> {
                     String breakdown = buildProviderBreakdownText(payables);
-                    runOnUiThread(() -> breakdownView.setText(breakdown));
+                    breakdownView.setText(breakdown);
                 });
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}

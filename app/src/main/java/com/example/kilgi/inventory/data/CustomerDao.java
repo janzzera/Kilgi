@@ -20,7 +20,13 @@ public interface CustomerDao {
     @Query("SELECT * FROM customers WHERE customerId = :customerId LIMIT 1")
     LiveData<CustomerEntity> getById(String customerId);
 
+    @Query("SELECT * FROM customers WHERE customerId = :customerId LIMIT 1")
+    CustomerEntity getByIdSync(String customerId);
+
     @Query("SELECT * FROM customers WHERE userId = :userId AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
     LiveData<List<CustomerEntity>> getActiveCustomersForUser(String userId);
+
+    @Query("SELECT * FROM customers WHERE userId = :userId AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
+    List<CustomerEntity> getActiveCustomersForUserSync(String userId);
 }
 

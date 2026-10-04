@@ -11,17 +11,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.UserEntity;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
 public class UserSetupActivity extends AppCompatActivity {
 
     private EditText displayNameInput;
     private EditText businessNameInput;
     private EditText passwordInput;
-    private ModuleOneRepository repository;
+    private UserViewModel userViewModel;
+    private UserEntity currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +35,9 @@ public class UserSetupActivity extends AppCompatActivity {
             return insets;
         });
 
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        userViewModel.getLocalUser().observe(this, user -> currentUser = user);
+
         displayNameInput = findViewById(R.id.edit_display_name);
         businessNameInput = findViewById(R.id.edit_business_name);
         passwordInput = findViewById(R.id.edit_password);
@@ -57,30 +60,25 @@ public class UserSetupActivity extends AppCompatActivity {
             return;
         }
 
-        new Thread(() -> {
-            UserEntity user = repository.getUser(ModuleOneRepository.LOCAL_USER_ID);
-            if (user != null) {
-                UserEntity updatedUser = new UserEntity(
-                        user.userId,
-                        user.username,
-                        displayName,
-                        businessName,
-                        user.emailAddress,
-                        user.mobileNumber,
-                        password, // We'll store as plain text for this simple implementation
-                        "none",
-                        "ACTIVE",
-                        user.createdAt,
-                        System.currentTimeMillis()
-                );
-                repository.updateUser(updatedUser);
-                MainActivity.isUserAuthenticated = true;
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Setup complete!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(this, MainActivity.class));
-                    finish();
-                });
-            }
-        }).start();
+        if (currentUser != null) {
+            UserEntity updatedUser = new UserEntity(
+                    currentUser.userId,
+                    currentUser.username,
+                    displayName,
+                    businessName,
+                    currentUser.emailAddress,
+                    currentUser.mobileNumber,
+                    password,
+                    "none",
+                    "ACTIVE",
+                    currentUser.createdAt,
+                    System.currentTimeMillis()
+            );
+            userViewModel.updateUser(updatedUser);
+            MainActivity.isUserAuthenticated = true;
+            Toast.makeText(this, "Setup complete!", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, MainActivity.class));
+            finish();
+        }
     }
 }

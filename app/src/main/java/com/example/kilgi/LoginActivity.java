@@ -12,16 +12,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.UserEntity;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText passwordInput;
     private TextView businessNameLabel;
-    private ModuleOneRepository repository;
+    private UserViewModel userViewModel;
+    private UserEntity currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,22 +35,18 @@ public class LoginActivity extends AppCompatActivity {
             return insets;
         });
 
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
         passwordInput = findViewById(R.id.edit_login_password);
         businessNameLabel = findViewById(R.id.text_login_business_name);
 
-        findViewById(R.id.button_login).setOnClickListener(v -> attemptLogin());
-
-        loadUserData();
-    }
-
-    private void loadUserData() {
-        new Thread(() -> {
-            UserEntity user = repository.getUser(ModuleOneRepository.LOCAL_USER_ID);
-            if (user != null) {
-                runOnUiThread(() -> businessNameLabel.setText(user.businessName));
+        userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
+        userViewModel.getLocalUser().observe(this, user -> {
+            currentUser = user;
+            if (user != null && user.businessName != null) {
+                businessNameLabel.setText(user.businessName);
             }
-        }).start();
+        });
+
+        findViewById(R.id.button_login).setOnClickListener(v -> attemptLogin());
     }
 
     private void attemptLogin() {
@@ -60,22 +57,15 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        new Thread(() -> {
-            UserEntity user = repository.getUser(ModuleOneRepository.LOCAL_USER_ID);
-            if (user != null) {
-                if (user.passwordHash.equals(password)) {
-                    MainActivity.isUserAuthenticated = true;
-                    runOnUiThread(() -> {
-                        startActivity(new Intent(this, MainActivity.class));
-                        finish();
-                    });
-                } else {
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "Incorrect password", Toast.LENGTH_SHORT).show();
-                        passwordInput.setText("");
-                    });
-                }
+        if (currentUser != null) {
+            if (password.equals(currentUser.passwordHash)) {
+                MainActivity.isUserAuthenticated = true;
+                startActivity(new Intent(this, MainActivity.class));
+                finish();
+            } else {
+                Toast.makeText(this, "Incorrect password", Toast.LENGTH_SHORT).show();
+                passwordInput.setText("");
             }
-        }).start();
+        }
     }
 }

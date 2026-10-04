@@ -24,8 +24,14 @@ public interface AccountingPeriodDao {
     @Query("SELECT * FROM accounting_periods WHERE userId = :userId ORDER BY startDate DESC")
     LiveData<List<AccountingPeriodEntity>> getAllForUser(String userId);
 
+    @Query("SELECT * FROM accounting_periods WHERE userId = :userId ORDER BY startDate DESC")
+    List<AccountingPeriodEntity> getAllForUserSync(String userId);
+
     @Query("SELECT * FROM accounting_periods WHERE periodId = :periodId LIMIT 1")
     LiveData<AccountingPeriodEntity> getById(long periodId);
+
+    @Query("SELECT * FROM accounting_periods WHERE periodId = :periodId LIMIT 1")
+    AccountingPeriodEntity getByIdSync(long periodId);
 
     @Query("SELECT EXISTS(SELECT 1 FROM accounting_periods WHERE userId = :userId AND isClosed = 1 AND :timestamp >= startDate AND :timestamp <= endDate)")
     boolean isTimestampLocked(String userId, long timestamp);

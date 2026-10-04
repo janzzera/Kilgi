@@ -11,7 +11,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -23,18 +22,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.accounting.AccountingCatalog;
 import com.example.kilgi.inventory.accounting.AccountingSummaryService;
-import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.JournalEntryEntity;
+import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.JournalLineEntity;
 import com.example.kilgi.inventory.data.JournalLineType;
-import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.input.InventoryInputParser;
-import com.example.kilgi.inventory.service.ModuleOneRepository;
+import com.example.kilgi.inventory.repository.JournalRepository;
+import com.example.kilgi.inventory.viewmodel.JournalViewModel;
+import com.example.kilgi.inventory.viewmodel.LotViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -73,7 +74,8 @@ public class JournalActivity extends AppCompatActivity {
     private Button journalSortToggleButton;
     private BottomNavigationView bottomNavigationView;
 
-    private ModuleOneRepository repository;
+    private JournalViewModel journalViewModel;
+    private LotViewModel lotViewModel;
     private String initialLotId;
     private ArrayAdapter<String> monthAdapter;
     private ArrayAdapter<Integer> yearAdapter;
@@ -94,7 +96,9 @@ public class JournalActivity extends AppCompatActivity {
         });
 
         initialLotId = getIntent().getStringExtra(EXTRA_LOT_ID);
-        repository = new ModuleOneRepository(KilgiDatabase.getInstance(this));
+        journalViewModel = new ViewModelProvider(this).get(JournalViewModel.class);
+        lotViewModel = new ViewModelProvider(this).get(LotViewModel.class);
+
         bindViews();
         chartOfAccountsView.setText(buildChartOfAccountsText());
         setupNavigation();
@@ -257,25 +261,28 @@ public class JournalActivity extends AppCompatActivity {
 
         if (!TextUtils.isEmpty(initialLotId)) {
             try {
-                LotEntity lot = repository.getLotWithDetails(initialLotId).lot;
+                LotEntity lot = lotViewModel.getLotById(initialLotId).getValue();
                 if (lot != null) {
                     selectedCalendar.setTimeInMillis(lot.timestamp);
                 }
             } catch (Exception ignored) {
             }
         } else {
-            LotEntity latestLot = repository.getLatestLot();
+            LotEntity latestLot = lotViewModel.getLatestLot().getValue();
             if (latestLot != null) {
                 selectedCalendar.setTimeInMillis(latestLot.timestamp);
             }
         }
 
-        long oldestTimestamp = repository.getOldestJournalEntryTimestamp();
-        long latestTimestamp = repository.getLatestJournalEntryTimestamp();
+        Long oldestTimestamp = journalViewModel.getOldestTimestampSync();
+        Long latestTimestamp = journalViewModel.getLatestTimestampSync();
+        long oldestVal = oldestTimestamp == null ? System.currentTimeMillis() : oldestTimestamp;
+        long latestVal = latestTimestamp == null ? System.currentTimeMillis() : latestTimestamp;
+
         Calendar oldestCalendar = Calendar.getInstance();
-        oldestCalendar.setTimeInMillis(oldestTimestamp);
+        oldestCalendar.setTimeInMillis(oldestVal);
         Calendar latestCalendar = Calendar.getInstance();
-        latestCalendar.setTimeInMillis(latestTimestamp);
+        latestCalendar.setTimeInMillis(latestVal);
 
         int selectedYear = selectedCalendar.get(Calendar.YEAR);
         int minYear = Math.min(oldestCalendar.get(Calendar.YEAR), selectedYear);
@@ -290,8 +297,8 @@ public class JournalActivity extends AppCompatActivity {
 
     private void refreshJournalOnWorker(int monthOfYear, int year, String statusMessage, int minYear, int maxYear, int requestedPageIndex) {
         try {
-            List<JournalEntryWithLines> allEntries = repository.getJournalEntriesForPeriod(monthOfYear, year);
-            List<JournalEntryWithLines> allEntriesUpTo = repository.getJournalEntriesUpTo(monthOfYear, year);
+            List<JournalEntryWithLines> allEntries = journalViewModel.getEntriesForPeriodSync(monthOfYear, year);
+            List<JournalEntryWithLines> allEntriesUpTo = journalViewModel.getEntriesUpToSync(monthOfYear, year);
             
             allEntries.sort((a, b) -> {
                 int cmp = Long.compare(a.entry.timestamp, b.entry.timestamp);
@@ -610,16 +617,19 @@ public class JournalActivity extends AppCompatActivity {
                     throw new IllegalArgumentException("Debit and Credit accounts must be different.");
                 }
 
-                ioExecutor.execute(() -> {
-                    try {
-                        repository.postManualAdjustment(calendar.getTimeInMillis(), debit, credit, amount, memo);
+                journalViewModel.postManualAdjustment(calendar.getTimeInMillis(), debit, credit, amount, memo, new JournalRepository.Callback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
                         runOnUiThread(() -> {
                             dialog.dismiss();
                             journalStatusView.setText(R.string.adjustment_posted_message);
                             loadSelectedJournal();
                         });
-                    } catch (Exception e) {
-                        runOnUiThread(() -> journalStatusView.setText(e.getMessage()));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> journalStatusView.setText(throwable.getMessage()));
                     }
                 });
             } catch (Exception e) {

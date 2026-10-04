@@ -77,7 +77,7 @@ public class ModuleOneRepository {
     }
 
     public List<AccountingPeriodEntity> getAccountingPeriods() {
-        return periodDao.getAllForUser(ensureLocalUserExists());
+        return periodDao.getAllForUserSync(ensureLocalUserExists());
     }
 
     public void createAccountingPeriod(String name, long start, long end) {
@@ -85,7 +85,7 @@ public class ModuleOneRepository {
     }
 
     public void closeAccountingPeriod(long periodId) {
-        AccountingPeriodEntity period = periodDao.getById(periodId);
+        AccountingPeriodEntity period = periodDao.getByIdSync(periodId);
         if (period != null) {
             period.isClosed = true;
             period.closedAt = System.currentTimeMillis();
@@ -338,7 +338,7 @@ public class ModuleOneRepository {
                     index,
                     now
             ));
-            WholesaleInvoiceEntity invoice = salesDao.getInvoiceById(step.getReferenceId());
+            WholesaleInvoiceEntity invoice = salesDao.getInvoiceByIdSync(step.getReferenceId());
             if (invoice != null) {
                 invoices.add(invoice);
             }
@@ -383,7 +383,7 @@ public class ModuleOneRepository {
                     index,
                     now
             ));
-            LotEntity lot = lotDao.getLotById(step.getReferenceId(), userId);
+            LotEntity lot = lotDao.getLotByIdSync(step.getReferenceId(), userId);
             if (lot != null) {
                 allocatedLots.add(lot);
             }
@@ -413,12 +413,12 @@ public class ModuleOneRepository {
 
     public List<ProviderEntity> getProviders() {
         String userId = ensureLocalUserExists();
-        List<ProviderEntity> providers = providerDao.getActiveProvidersForUser(userId);
+        List<ProviderEntity> providers = providerDao.getActiveProvidersForUserSync(userId);
         return providers == null ? Collections.emptyList() : providers;
     }
 
     public UserEntity getUser(String userId) {
-        return userDao.getById(userId);
+        return userDao.getByIdSync(userId);
     }
 
     public void updateUser(UserEntity user) {
@@ -427,33 +427,33 @@ public class ModuleOneRepository {
 
     public List<CustomerEntity> getCustomers() {
         String userId = ensureLocalUserExists();
-        List<CustomerEntity> customers = customerDao.getActiveCustomersForUser(userId);
+        List<CustomerEntity> customers = customerDao.getActiveCustomersForUserSync(userId);
         return customers == null ? Collections.emptyList() : customers;
     }
 
     public List<CustomerLedgerSummary> getCustomerLedgerSummaries() {
         String userId = ensureLocalUserExists();
-        List<CustomerLedgerSummary> summaries = salesDao.getCustomerLedgerSummaries(userId);
+        List<CustomerLedgerSummary> summaries = salesDao.getCustomerLedgerSummariesSync(userId);
         return summaries == null ? Collections.emptyList() : summaries;
     }
 
     public List<ProviderLedgerSummary> getProviderLedgerSummaries() {
         String userId = ensureLocalUserExists();
-        List<ProviderLedgerSummary> summaries = salesDao.getProviderLedgerSummaries(userId);
+        List<ProviderLedgerSummary> summaries = salesDao.getProviderLedgerSummariesSync(userId);
         return summaries == null ? Collections.emptyList() : summaries;
     }
 
     public List<OpenCustomerInvoice> getOpenInvoicesForCustomer(String customerId) {
         validateRequiredText(customerId, "Customer");
         ensureLocalUserExists();
-        List<OpenCustomerInvoice> invoices = salesDao.getOpenInvoicesForCustomer(customerId.trim());
+        List<OpenCustomerInvoice> invoices = salesDao.getOpenInvoicesForCustomerSync(customerId.trim());
         return invoices == null ? Collections.emptyList() : invoices;
     }
 
     public List<OpenProviderLotPayable> getOpenLotPayablesForProvider(String providerId) {
         validateRequiredText(providerId, "Provider");
         ensureLocalUserExists();
-        List<OpenProviderLotPayable> payables = salesDao.getOpenLotPayablesForProvider(providerId.trim());
+        List<OpenProviderLotPayable> payables = salesDao.getOpenLotPayablesForProviderSync(providerId.trim());
         return payables == null ? Collections.emptyList() : payables;
     }
 
@@ -463,19 +463,19 @@ public class ModuleOneRepository {
 
     public LotEntity getLatestLot() {
         String userId = ensureLocalUserExists();
-        return lotDao.getLatestLot(userId);
+        return lotDao.getLatestLotSync(userId);
     }
 
     public List<LotEntity> getAllLots() {
         String userId = ensureLocalUserExists();
-        List<LotEntity> lots = lotDao.getAllLotsForUser(userId);
+        List<LotEntity> lots = lotDao.getAllLotsForUserSync(userId);
         return lots == null ? Collections.emptyList() : lots;
     }
 
     public List<JournalEntryWithLines> getJournalEntries(String lotId) {
         validateRequiredText(lotId, "Lot ID");
         String userId = ensureLocalUserExists();
-        List<JournalEntryWithLines> entries = journalDao.getEntriesForLot(lotId.trim(), userId);
+        List<JournalEntryWithLines> entries = journalDao.getEntriesForLotSync(lotId.trim(), userId);
         return entries == null ? Collections.emptyList() : entries;
     }
 
@@ -495,7 +495,7 @@ public class ModuleOneRepository {
         end.add(Calendar.MONTH, 1);
 
         String userId = ensureLocalUserExists();
-        List<JournalEntryWithLines> entries = journalDao.getEntriesForPeriod(
+        List<JournalEntryWithLines> entries = journalDao.getEntriesForPeriodSync(
                 userId,
                 start.getTimeInMillis(),
                 end.getTimeInMillis()
@@ -517,26 +517,26 @@ public class ModuleOneRepository {
         end.add(Calendar.MONTH, 1);
 
         String userId = ensureLocalUserExists();
-        List<JournalEntryWithLines> entries = journalDao.getEntriesUpTo(userId, end.getTimeInMillis());
+        List<JournalEntryWithLines> entries = journalDao.getEntriesUpToSync(userId, end.getTimeInMillis());
         return entries == null ? Collections.emptyList() : entries;
     }
 
     public long getOldestJournalEntryTimestamp() {
         String userId = ensureLocalUserExists();
-        Long timestamp = journalDao.getOldestEntryTimestamp(userId);
+        Long timestamp = journalDao.getOldestEntryTimestampSync(userId);
         return timestamp == null ? System.currentTimeMillis() : timestamp;
     }
 
     public long getLatestJournalEntryTimestamp() {
         String userId = ensureLocalUserExists();
-        Long timestamp = journalDao.getLatestEntryTimestamp(userId);
+        Long timestamp = journalDao.getLatestEntryTimestampSync(userId);
         return timestamp == null ? System.currentTimeMillis() : timestamp;
     }
 
     private LotEntity requireLot(String lotId) {
         validateRequiredText(lotId, "Lot ID");
         String userId = ensureLocalUserExists();
-        LotEntity lot = lotDao.getLotById(lotId.trim(), userId);
+        LotEntity lot = lotDao.getLotByIdSync(lotId.trim(), userId);
         if (lot == null) {
             throw new IllegalArgumentException("No lot found for ID: " + lotId.trim());
         }
@@ -546,7 +546,7 @@ public class ModuleOneRepository {
     private LotWithDetails requireLotWithDetails(String lotId) {
         validateRequiredText(lotId, "Lot ID");
         String userId = ensureLocalUserExists();
-        LotWithDetails lot = lotDao.getLotWithDetails(lotId.trim(), userId);
+        LotWithDetails lot = lotDao.getLotWithDetailsSync(lotId.trim(), userId);
         if (lot == null || lot.lot == null) {
             throw new IllegalArgumentException("No lot found for ID: " + lotId.trim());
         }
@@ -555,7 +555,7 @@ public class ModuleOneRepository {
 
     private ProviderEntity requireProvider(String providerId) {
         validateRequiredText(providerId, "Provider");
-        ProviderEntity provider = providerDao.getById(providerId.trim());
+        ProviderEntity provider = providerDao.getByIdSync(providerId.trim());
         if (provider == null || !LOCAL_USER_ID.equals(provider.userId) || provider.isActive != 1) {
             throw new IllegalArgumentException("No provider found for the selected record.");
         }
@@ -564,7 +564,7 @@ public class ModuleOneRepository {
 
     private CustomerEntity requireCustomer(String customerId) {
         validateRequiredText(customerId, "Customer");
-        CustomerEntity customer = customerDao.getById(customerId.trim());
+        CustomerEntity customer = customerDao.getByIdSync(customerId.trim());
         if (customer == null || !LOCAL_USER_ID.equals(customer.userId) || customer.isActive != 1) {
             throw new IllegalArgumentException("No customer found for the selected record.");
         }
@@ -572,7 +572,7 @@ public class ModuleOneRepository {
     }
 
     private String ensureLocalUserExists() {
-        UserEntity existingUser = userDao.getById(LOCAL_USER_ID);
+        UserEntity existingUser = userDao.getByIdSync(LOCAL_USER_ID);
         if (existingUser == null) {
             long now = System.currentTimeMillis();
             userDao.insert(new UserEntity(
