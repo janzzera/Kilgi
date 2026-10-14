@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.example.kilgi.inventory.data.AccountingPeriodEntity;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.AccountingPeriodRepository;
 import com.example.kilgi.inventory.repository.UserRepository;
 
@@ -15,7 +16,7 @@ import java.util.List;
 public class AccountingPeriodViewModel extends AndroidViewModel {
 
     private final AccountingPeriodRepository repository;
-    private final LiveData<List<AccountingPeriodEntity>> allPeriods;
+    private final LiveData<Resource<List<AccountingPeriodEntity>>> allPeriods;
 
     public AccountingPeriodViewModel(@NonNull Application application) {
         super(application);
@@ -23,11 +24,11 @@ public class AccountingPeriodViewModel extends AndroidViewModel {
         allPeriods = repository.getAllPeriods(UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<AccountingPeriodEntity>> getAllPeriods() {
+    public LiveData<Resource<List<AccountingPeriodEntity>>> getAllPeriods() {
         return allPeriods;
     }
 
-    public LiveData<AccountingPeriodEntity> getPeriodById(long periodId) {
+    public LiveData<Resource<AccountingPeriodEntity>> getPeriodById(long periodId) {
         return repository.getPeriodById(periodId);
     }
 

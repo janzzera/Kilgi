@@ -16,6 +16,10 @@ import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.OpenCustomerInvoice;
 import com.example.kilgi.inventory.data.SalesDao;
 import com.example.kilgi.inventory.data.WholesaleInvoiceEntity;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
 import com.example.kilgi.inventory.service.CustomerCollectionResult;
 import com.example.kilgi.inventory.service.PaymentAllocationEngine;
 
@@ -23,26 +27,74 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import retrofit2.Call;
+
 public class CustomerRepository {
 
     private final KilgiDatabase database;
     private final CustomerDao customerDao;
     private final SalesDao salesDao;
     private final JournalDao journalDao;
+    private final ApiService apiService;
 
     public CustomerRepository(Context context) {
         this.database = KilgiDatabase.getInstance(context);
         this.customerDao = database.customerDao();
         this.salesDao = database.salesDao();
         this.journalDao = database.journalDao();
+        this.apiService = ApiClient.getApiService(context);
     }
 
-    public LiveData<List<CustomerEntity>> getActiveCustomers(String userId) {
-        return customerDao.getActiveCustomersForUser(userId);
+    public LiveData<Resource<List<CustomerEntity>>> getActiveCustomers(String userId) {
+        return new NetworkBoundResource<List<CustomerEntity>, List<CustomerEntity>>() {
+            @Override
+            protected LiveData<List<CustomerEntity>> loadFromDb() {
+                return customerDao.getActiveCustomersForUser(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<CustomerEntity> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<CustomerEntity>> createCall() {
+                return apiService.getCustomers();
+            }
+
+            @Override
+            protected void saveCallResult(List<CustomerEntity> item) {
+                if (item != null) {
+                    customerDao.insertAll(item);
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<CustomerEntity> getCustomerById(String customerId) {
-        return customerDao.getById(customerId);
+    public LiveData<Resource<CustomerEntity>> getCustomerById(String customerId) {
+        return new NetworkBoundResource<CustomerEntity, CustomerEntity>() {
+            @Override
+            protected LiveData<CustomerEntity> loadFromDb() {
+                return customerDao.getById(customerId);
+            }
+
+            @Override
+            protected boolean shouldFetch(CustomerEntity data) {
+                return true;
+            }
+
+            @Override
+            protected Call<CustomerEntity> createCall() {
+                return apiService.getCustomerById(customerId);
+            }
+
+            @Override
+            protected void saveCallResult(CustomerEntity item) {
+                if (item != null) {
+                    customerDao.insert(item);
+                }
+            }
+        }.asLiveData();
     }
 
     public LiveData<List<CustomerLedgerSummary>> getCustomerLedgerSummaries(String userId) {

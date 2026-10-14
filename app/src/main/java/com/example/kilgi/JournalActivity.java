@@ -261,7 +261,8 @@ public class JournalActivity extends AppCompatActivity {
 
         if (!TextUtils.isEmpty(initialLotId)) {
             try {
-                LotEntity lot = lotViewModel.getLotById(initialLotId).getValue();
+                com.example.kilgi.inventory.data.common.Resource<LotEntity> resource = lotViewModel.getLotById(initialLotId).getValue();
+                LotEntity lot = resource != null ? resource.data : null;
                 if (lot != null) {
                     selectedCalendar.setTimeInMillis(lot.timestamp);
                 }

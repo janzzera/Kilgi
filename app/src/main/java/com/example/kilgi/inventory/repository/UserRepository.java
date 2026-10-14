@@ -7,22 +7,50 @@ import androidx.lifecycle.LiveData;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.UserDao;
 import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
+
+import retrofit2.Call;
 
 public class UserRepository {
 
     public static final String LOCAL_USER_ID = "local-owner";
 
     private final UserDao userDao;
-    private final KilgiDatabase database;
+    private final ApiService apiService;
 
     public UserRepository(Context context) {
-        this.database = KilgiDatabase.getInstance(context);
-        this.userDao = database.userDao();
+        this.userDao = KilgiDatabase.getInstance(context).userDao();
+        this.apiService = ApiClient.getApiService(context);
         ensureLocalUserExists();
     }
 
-    public LiveData<UserEntity> getUser(String userId) {
-        return userDao.getById(userId);
+    public LiveData<Resource<UserEntity>> getUser(String userId) {
+        return new NetworkBoundResource<UserEntity, UserEntity>() {
+            @Override
+            protected LiveData<UserEntity> loadFromDb() {
+                return userDao.getById(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(UserEntity data) {
+                return true;
+            }
+
+            @Override
+            protected Call<UserEntity> createCall() {
+                return apiService.getUserById(userId);
+            }
+
+            @Override
+            protected void saveCallResult(UserEntity item) {
+                if (item != null) {
+                    userDao.insert(item);
+                }
+            }
+        }.asLiveData();
     }
 
     public void updateUser(UserEntity user) {
@@ -35,7 +63,6 @@ public class UserRepository {
 
     public void ensureLocalUserExists() {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
-            // Check if local owner exists, insert default if missing
             long now = System.currentTimeMillis();
             userDao.insert(new UserEntity(
                     LOCAL_USER_ID,

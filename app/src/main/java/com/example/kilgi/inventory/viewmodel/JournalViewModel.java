@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData;
 
 import com.example.kilgi.inventory.accounting.AccountingAccount;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.JournalRepository;
 import com.example.kilgi.inventory.repository.UserRepository;
 
@@ -26,15 +27,15 @@ public class JournalViewModel extends AndroidViewModel {
         latestTimestamp = repository.getLatestEntryTimestamp(UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<JournalEntryWithLines>> getEntriesForLot(String lotId) {
+    public LiveData<Resource<List<JournalEntryWithLines>>> getEntriesForLot(String lotId) {
         return repository.getEntriesForLot(lotId, UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<JournalEntryWithLines>> getEntriesForPeriod(int monthOfYear, int year) {
+    public LiveData<Resource<List<JournalEntryWithLines>>> getEntriesForPeriod(int monthOfYear, int year) {
         return repository.getEntriesForPeriod(UserRepository.LOCAL_USER_ID, monthOfYear, year);
     }
 
-    public LiveData<List<JournalEntryWithLines>> getEntriesUpTo(int monthOfYear, int year) {
+    public LiveData<Resource<List<JournalEntryWithLines>>> getEntriesUpTo(int monthOfYear, int year) {
         return repository.getEntriesUpTo(UserRepository.LOCAL_USER_ID, monthOfYear, year);
     }
 

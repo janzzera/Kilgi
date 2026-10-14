@@ -54,9 +54,9 @@ public class PeriodManagementActivity extends AppCompatActivity {
         adapter = new PeriodAdapter();
         recyclerView.setAdapter(adapter);
 
-        viewModel.getAllPeriods().observe(this, periods -> {
-            if (periods != null) {
-                adapter.setPeriods(periods);
+        viewModel.getAllPeriods().observe(this, resource -> {
+            if (resource != null && resource.data != null) {
+                adapter.setPeriods(resource.data);
             }
         });
 

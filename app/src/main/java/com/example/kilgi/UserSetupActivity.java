@@ -36,7 +36,11 @@ public class UserSetupActivity extends AppCompatActivity {
         });
 
         userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
-        userViewModel.getLocalUser().observe(this, user -> currentUser = user);
+        userViewModel.getLocalUser().observe(this, userResource -> {
+            if (userResource != null && userResource.data != null) {
+                currentUser = userResource.data;
+            }
+        });
 
         displayNameInput = findViewById(R.id.edit_display_name);
         businessNameInput = findViewById(R.id.edit_business_name);

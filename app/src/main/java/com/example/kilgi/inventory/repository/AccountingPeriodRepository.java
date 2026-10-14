@@ -7,25 +7,77 @@ import androidx.lifecycle.LiveData;
 import com.example.kilgi.inventory.data.AccountingPeriodDao;
 import com.example.kilgi.inventory.data.AccountingPeriodEntity;
 import com.example.kilgi.inventory.data.KilgiDatabase;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
 
 import java.util.List;
+
+import retrofit2.Call;
 
 public class AccountingPeriodRepository {
 
     private final KilgiDatabase database;
     private final AccountingPeriodDao periodDao;
+    private final ApiService apiService;
 
     public AccountingPeriodRepository(Context context) {
         this.database = KilgiDatabase.getInstance(context);
         this.periodDao = database.accountingPeriodDao();
+        this.apiService = ApiClient.getApiService(context);
     }
 
-    public LiveData<List<AccountingPeriodEntity>> getAllPeriods(String userId) {
-        return periodDao.getAllForUser(userId);
+    public LiveData<Resource<List<AccountingPeriodEntity>>> getAllPeriods(String userId) {
+        return new NetworkBoundResource<List<AccountingPeriodEntity>, List<AccountingPeriodEntity>>() {
+            @Override
+            protected LiveData<List<AccountingPeriodEntity>> loadFromDb() {
+                return periodDao.getAllForUser(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<AccountingPeriodEntity> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<AccountingPeriodEntity>> createCall() {
+                return apiService.getAccountingPeriods();
+            }
+
+            @Override
+            protected void saveCallResult(List<AccountingPeriodEntity> item) {
+                if (item != null) {
+                    periodDao.insertAll(item);
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<AccountingPeriodEntity> getPeriodById(long periodId) {
-        return periodDao.getById(periodId);
+    public LiveData<Resource<AccountingPeriodEntity>> getPeriodById(long periodId) {
+        return new NetworkBoundResource<AccountingPeriodEntity, AccountingPeriodEntity>() {
+            @Override
+            protected LiveData<AccountingPeriodEntity> loadFromDb() {
+                return periodDao.getById(periodId);
+            }
+
+            @Override
+            protected boolean shouldFetch(AccountingPeriodEntity data) {
+                return true;
+            }
+
+            @Override
+            protected Call<AccountingPeriodEntity> createCall() {
+                return apiService.getAccountingPeriodById(periodId);
+            }
+
+            @Override
+            protected void saveCallResult(AccountingPeriodEntity item) {
+                if (item != null) {
+                    periodDao.insert(item);
+                }
+            }
+        }.asLiveData();
     }
 
     public boolean isTimestampLocked(String userId, long timestamp) {
@@ -46,7 +98,7 @@ public class AccountingPeriodRepository {
     public void closeAccountingPeriod(long periodId, Callback<Void> callback) {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                AccountingPeriodEntity period = periodDao.getById(periodId).getValue();
+                AccountingPeriodEntity period = periodDao.getByIdSync(periodId);
                 if (period != null) {
                     period.isClosed = true;
                     period.closedAt = System.currentTimeMillis();

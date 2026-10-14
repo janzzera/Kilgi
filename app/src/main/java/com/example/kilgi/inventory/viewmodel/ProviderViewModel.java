@@ -9,6 +9,7 @@ import androidx.lifecycle.LiveData;
 import com.example.kilgi.inventory.data.OpenProviderLotPayable;
 import com.example.kilgi.inventory.data.ProviderEntity;
 import com.example.kilgi.inventory.data.ProviderLedgerSummary;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.ProviderRepository;
 import com.example.kilgi.inventory.repository.UserRepository;
 import com.example.kilgi.inventory.service.ProviderSettlementResult;
@@ -18,7 +19,7 @@ import java.util.List;
 public class ProviderViewModel extends AndroidViewModel {
 
     private final ProviderRepository repository;
-    private final LiveData<List<ProviderEntity>> activeProviders;
+    private final LiveData<Resource<List<ProviderEntity>>> activeProviders;
     private final LiveData<List<ProviderLedgerSummary>> ledgerSummaries;
 
     public ProviderViewModel(@NonNull Application application) {
@@ -28,11 +29,11 @@ public class ProviderViewModel extends AndroidViewModel {
         ledgerSummaries = repository.getProviderLedgerSummaries(UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<ProviderEntity>> getActiveProviders() {
+    public LiveData<Resource<List<ProviderEntity>>> getActiveProviders() {
         return activeProviders;
     }
 
-    public LiveData<ProviderEntity> getProviderById(String providerId) {
+    public LiveData<Resource<ProviderEntity>> getProviderById(String providerId) {
         return repository.getProviderById(providerId);
     }
 

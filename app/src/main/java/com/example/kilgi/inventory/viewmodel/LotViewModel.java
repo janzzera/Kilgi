@@ -13,6 +13,7 @@ import com.example.kilgi.inventory.data.LotEntity;
 import com.example.kilgi.inventory.data.LotWithDetails;
 import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.LotRepository;
 import com.example.kilgi.inventory.repository.UserRepository;
 
@@ -21,7 +22,7 @@ import java.util.List;
 public class LotViewModel extends AndroidViewModel {
 
     private final LotRepository repository;
-    private final LiveData<List<LotEntity>> allLots;
+    private final LiveData<Resource<List<LotEntity>>> allLots;
     private final LiveData<LotEntity> latestLot;
 
     public LotViewModel(@NonNull Application application) {
@@ -31,7 +32,7 @@ public class LotViewModel extends AndroidViewModel {
         latestLot = repository.getLatestLot(UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<LotEntity>> getAllLots() {
+    public LiveData<Resource<List<LotEntity>>> getAllLots() {
         return allLots;
     }
 
@@ -39,7 +40,7 @@ public class LotViewModel extends AndroidViewModel {
         return latestLot;
     }
 
-    public LiveData<LotEntity> getLotById(String lotId) {
+    public LiveData<Resource<LotEntity>> getLotById(String lotId) {
         return repository.getLotById(lotId, UserRepository.LOCAL_USER_ID);
     }
 

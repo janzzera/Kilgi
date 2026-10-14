@@ -149,15 +149,15 @@ public class SalesActivity extends AppCompatActivity {
             }
         });
 
-        customerViewModel.getActiveCustomers().observe(this, customers -> {
-            if (customers != null) {
-                cachedCustomers = customers;
+        customerViewModel.getActiveCustomers().observe(this, resource -> {
+            if (resource != null && resource.data != null) {
+                cachedCustomers = resource.data;
             }
         });
 
-        providerViewModel.getActiveProviders().observe(this, providers -> {
-            if (providers != null) {
-                cachedProviders = providers;
+        providerViewModel.getActiveProviders().observe(this, resource -> {
+            if (resource != null && resource.data != null) {
+                cachedProviders = resource.data;
             }
         });
     }

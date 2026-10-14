@@ -4,11 +4,14 @@ import android.content.Context;
 
 import com.example.kilgi.inventory.data.TokenManager;
 
+import com.example.kilgi.inventory.data.api.ApiService;
+
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
     private static Retrofit retrofit = null;
+    private static ApiService apiService = null;
 
     public static Retrofit getClient(Context context) {
         if(retrofit == null) {
@@ -26,6 +29,13 @@ public class ApiClient {
         }
 
         return retrofit;
+    }
+
+    public static ApiService getApiService(Context context) {
+        if (apiService == null) {
+            apiService = getClient(context).create(ApiService.class);
+        }
+        return apiService;
     }
 }
 

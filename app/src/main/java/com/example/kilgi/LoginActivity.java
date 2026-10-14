@@ -47,10 +47,12 @@ public class LoginActivity extends AppCompatActivity {
         businessNameLabel = findViewById(R.id.text_login_business_name);
 
         userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
-        userViewModel.getLocalUser().observe(this, user -> {
-            currentUser = user;
-            if (user != null && user.businessName != null) {
-                businessNameLabel.setText(user.businessName);
+        userViewModel.getLocalUser().observe(this, userResource -> {
+            if (userResource != null && userResource.data != null) {
+                currentUser = userResource.data;
+                if (currentUser.businessName != null) {
+                    businessNameLabel.setText(currentUser.businessName);
+                }
             }
         });
 

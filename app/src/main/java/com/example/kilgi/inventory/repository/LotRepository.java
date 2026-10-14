@@ -18,11 +18,17 @@ import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderDao;
 import com.example.kilgi.inventory.data.ProviderEntity;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
 import com.example.kilgi.inventory.service.BatchValuationSnapshot;
 
 import java.util.List;
 import java.util.UUID;
+
+import retrofit2.Call;
 
 public class LotRepository {
 
@@ -30,20 +36,66 @@ public class LotRepository {
     private final LotDao lotDao;
     private final ProviderDao providerDao;
     private final JournalDao journalDao;
+    private final ApiService apiService;
 
     public LotRepository(Context context) {
         this.database = KilgiDatabase.getInstance(context);
         this.lotDao = database.lotDao();
         this.providerDao = database.providerDao();
         this.journalDao = database.journalDao();
+        this.apiService = ApiClient.getApiService(context);
     }
 
-    public LiveData<List<LotEntity>> getAllLots(String userId) {
-        return lotDao.getAllLotsForUser(userId);
+    public LiveData<Resource<List<LotEntity>>> getAllLots(String userId) {
+        return new NetworkBoundResource<List<LotEntity>, List<LotEntity>>() {
+            @Override
+            protected LiveData<List<LotEntity>> loadFromDb() {
+                return lotDao.getAllLotsForUser(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<LotEntity> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<LotEntity>> createCall() {
+                return apiService.getLots();
+            }
+
+            @Override
+            protected void saveCallResult(List<LotEntity> item) {
+                if (item != null) {
+                    lotDao.insertAll(item);
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<LotEntity> getLotById(String lotId, String userId) {
-        return lotDao.getLotById(lotId, userId);
+    public LiveData<Resource<LotEntity>> getLotById(String lotId, String userId) {
+        return new NetworkBoundResource<LotEntity, LotEntity>() {
+            @Override
+            protected LiveData<LotEntity> loadFromDb() {
+                return lotDao.getLotById(lotId, userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(LotEntity data) {
+                return true;
+            }
+
+            @Override
+            protected Call<LotEntity> createCall() {
+                return apiService.getLotById(lotId);
+            }
+
+            @Override
+            protected void saveCallResult(LotEntity item) {
+                if (item != null) {
+                    lotDao.insert(item);
+                }
+            }
+        }.asLiveData();
     }
 
     public LiveData<LotEntity> getLatestLot(String userId) {

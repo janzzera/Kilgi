@@ -10,25 +10,64 @@ import com.example.kilgi.inventory.accounting.LedgerEntryDraft;
 import com.example.kilgi.inventory.data.JournalDao;
 import com.example.kilgi.inventory.data.JournalEntryWithLines;
 import com.example.kilgi.inventory.data.KilgiDatabase;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
 
 import java.util.Calendar;
 import java.util.List;
+
+import retrofit2.Call;
 
 public class JournalRepository {
 
     private final KilgiDatabase database;
     private final JournalDao journalDao;
+    private final ApiService apiService;
 
     public JournalRepository(Context context) {
         this.database = KilgiDatabase.getInstance(context);
         this.journalDao = database.journalDao();
+        this.apiService = ApiClient.getApiService(context);
     }
 
-    public LiveData<List<JournalEntryWithLines>> getEntriesForLot(String lotId, String userId) {
-        return journalDao.getEntriesForLot(lotId, userId);
+    public LiveData<Resource<List<JournalEntryWithLines>>> getEntriesForLot(String lotId, String userId) {
+        return new NetworkBoundResource<List<JournalEntryWithLines>, List<JournalEntryWithLines>>() {
+            @Override
+            protected LiveData<List<JournalEntryWithLines>> loadFromDb() {
+                return journalDao.getEntriesForLot(lotId, userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<JournalEntryWithLines> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<JournalEntryWithLines>> createCall() {
+                return apiService.getJournalEntriesByLotId(lotId);
+            }
+
+            @Override
+            protected void saveCallResult(List<JournalEntryWithLines> item) {
+                if (item != null) {
+                    database.runInTransaction(() -> {
+                        for (JournalEntryWithLines entry : item) {
+                            if (entry.entry != null) {
+                                journalDao.insertEntry(entry.entry);
+                            }
+                            if (entry.lines != null) {
+                                journalDao.insertLines(entry.lines);
+                            }
+                        }
+                    });
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<List<JournalEntryWithLines>> getEntriesForPeriod(String userId, int monthOfYear, int year) {
+    public LiveData<Resource<List<JournalEntryWithLines>>> getEntriesForPeriod(String userId, int monthOfYear, int year) {
         if (monthOfYear < 1 || monthOfYear > 12) {
             throw new IllegalArgumentException("Month must be between 1 and 12.");
         }
@@ -43,10 +82,44 @@ public class JournalRepository {
         Calendar end = (Calendar) start.clone();
         end.add(Calendar.MONTH, 1);
 
-        return journalDao.getEntriesForPeriod(userId, start.getTimeInMillis(), end.getTimeInMillis());
+        long fromTimestamp = start.getTimeInMillis();
+        long toTimestamp = end.getTimeInMillis();
+
+        return new NetworkBoundResource<List<JournalEntryWithLines>, List<JournalEntryWithLines>>() {
+            @Override
+            protected LiveData<List<JournalEntryWithLines>> loadFromDb() {
+                return journalDao.getEntriesForPeriod(userId, fromTimestamp, toTimestamp);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<JournalEntryWithLines> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<JournalEntryWithLines>> createCall() {
+                return apiService.getJournalEntries();
+            }
+
+            @Override
+            protected void saveCallResult(List<JournalEntryWithLines> item) {
+                if (item != null) {
+                    database.runInTransaction(() -> {
+                        for (JournalEntryWithLines entry : item) {
+                            if (entry.entry != null) {
+                                journalDao.insertEntry(entry.entry);
+                            }
+                            if (entry.lines != null) {
+                                journalDao.insertLines(entry.lines);
+                            }
+                        }
+                    });
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<List<JournalEntryWithLines>> getEntriesUpTo(String userId, int monthOfYear, int year) {
+    public LiveData<Resource<List<JournalEntryWithLines>>> getEntriesUpTo(String userId, int monthOfYear, int year) {
         if (monthOfYear < 1 || monthOfYear > 12) {
             throw new IllegalArgumentException("Month must be between 1 and 12.");
         }
@@ -59,7 +132,40 @@ public class JournalRepository {
         end.set(year, monthOfYear - 1, 1, 0, 0, 0);
         end.add(Calendar.MONTH, 1);
 
-        return journalDao.getEntriesUpTo(userId, end.getTimeInMillis());
+        long toTimestamp = end.getTimeInMillis();
+
+        return new NetworkBoundResource<List<JournalEntryWithLines>, List<JournalEntryWithLines>>() {
+            @Override
+            protected LiveData<List<JournalEntryWithLines>> loadFromDb() {
+                return journalDao.getEntriesUpTo(userId, toTimestamp);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<JournalEntryWithLines> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<JournalEntryWithLines>> createCall() {
+                return apiService.getJournalEntries();
+            }
+
+            @Override
+            protected void saveCallResult(List<JournalEntryWithLines> item) {
+                if (item != null) {
+                    database.runInTransaction(() -> {
+                        for (JournalEntryWithLines entry : item) {
+                            if (entry.entry != null) {
+                                journalDao.insertEntry(entry.entry);
+                            }
+                            if (entry.lines != null) {
+                                journalDao.insertLines(entry.lines);
+                            }
+                        }
+                    });
+                }
+            }
+        }.asLiveData();
     }
 
     public LiveData<Long> getOldestEntryTimestamp(String userId) {

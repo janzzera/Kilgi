@@ -17,12 +17,18 @@ import com.example.kilgi.inventory.data.ProviderLedgerSummary;
 import com.example.kilgi.inventory.data.ProviderPaymentAllocationEntity;
 import com.example.kilgi.inventory.data.ProviderPaymentEntity;
 import com.example.kilgi.inventory.data.SalesDao;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
 import com.example.kilgi.inventory.service.PaymentAllocationEngine;
 import com.example.kilgi.inventory.service.ProviderSettlementResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import retrofit2.Call;
 
 public class ProviderRepository {
 
@@ -31,6 +37,7 @@ public class ProviderRepository {
     private final SalesDao salesDao;
     private final LotDao lotDao;
     private final JournalDao journalDao;
+    private final ApiService apiService;
 
     public ProviderRepository(Context context) {
         this.database = KilgiDatabase.getInstance(context);
@@ -38,14 +45,59 @@ public class ProviderRepository {
         this.salesDao = database.salesDao();
         this.lotDao = database.lotDao();
         this.journalDao = database.journalDao();
+        this.apiService = ApiClient.getApiService(context);
     }
 
-    public LiveData<List<ProviderEntity>> getActiveProviders(String userId) {
-        return providerDao.getActiveProvidersForUser(userId);
+    public LiveData<Resource<List<ProviderEntity>>> getActiveProviders(String userId) {
+        return new NetworkBoundResource<List<ProviderEntity>, List<ProviderEntity>>() {
+            @Override
+            protected LiveData<List<ProviderEntity>> loadFromDb() {
+                return providerDao.getActiveProvidersForUser(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<ProviderEntity> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<ProviderEntity>> createCall() {
+                return apiService.getProviders();
+            }
+
+            @Override
+            protected void saveCallResult(List<ProviderEntity> item) {
+                if (item != null) {
+                    providerDao.insertAll(item);
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<ProviderEntity> getProviderById(String providerId) {
-        return providerDao.getById(providerId);
+    public LiveData<Resource<ProviderEntity>> getProviderById(String providerId) {
+        return new NetworkBoundResource<ProviderEntity, ProviderEntity>() {
+            @Override
+            protected LiveData<ProviderEntity> loadFromDb() {
+                return providerDao.getById(providerId);
+            }
+
+            @Override
+            protected boolean shouldFetch(ProviderEntity data) {
+                return true;
+            }
+
+            @Override
+            protected Call<ProviderEntity> createCall() {
+                return apiService.getProviderById(providerId);
+            }
+
+            @Override
+            protected void saveCallResult(ProviderEntity item) {
+                if (item != null) {
+                    providerDao.insert(item);
+                }
+            }
+        }.asLiveData();
     }
 
     public LiveData<List<ProviderLedgerSummary>> getProviderLedgerSummaries(String userId) {

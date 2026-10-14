@@ -9,6 +9,7 @@ import androidx.lifecycle.LiveData;
 import com.example.kilgi.inventory.data.CustomerEntity;
 import com.example.kilgi.inventory.data.CustomerLedgerSummary;
 import com.example.kilgi.inventory.data.OpenCustomerInvoice;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.CustomerRepository;
 import com.example.kilgi.inventory.repository.UserRepository;
 import com.example.kilgi.inventory.service.CustomerCollectionResult;
@@ -18,7 +19,7 @@ import java.util.List;
 public class CustomerViewModel extends AndroidViewModel {
 
     private final CustomerRepository repository;
-    private final LiveData<List<CustomerEntity>> activeCustomers;
+    private final LiveData<Resource<List<CustomerEntity>>> activeCustomers;
     private final LiveData<List<CustomerLedgerSummary>> ledgerSummaries;
 
     public CustomerViewModel(@NonNull Application application) {
@@ -28,11 +29,11 @@ public class CustomerViewModel extends AndroidViewModel {
         ledgerSummaries = repository.getCustomerLedgerSummaries(UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<CustomerEntity>> getActiveCustomers() {
+    public LiveData<Resource<List<CustomerEntity>>> getActiveCustomers() {
         return activeCustomers;
     }
 
-    public LiveData<CustomerEntity> getCustomerById(String customerId) {
+    public LiveData<Resource<CustomerEntity>> getCustomerById(String customerId) {
         return repository.getCustomerById(customerId);
     }
 

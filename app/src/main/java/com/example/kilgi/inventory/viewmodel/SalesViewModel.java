@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData;
 
 import com.example.kilgi.inventory.data.RetailSaleEntity;
 import com.example.kilgi.inventory.data.WholesaleInvoiceEntity;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.SalesRepository;
 import com.example.kilgi.inventory.repository.UserRepository;
 
@@ -16,8 +17,8 @@ import java.util.List;
 public class SalesViewModel extends AndroidViewModel {
 
     private final SalesRepository repository;
-    private final LiveData<List<RetailSaleEntity>> retailSales;
-    private final LiveData<List<WholesaleInvoiceEntity>> wholesaleInvoices;
+    private final LiveData<Resource<List<RetailSaleEntity>>> retailSales;
+    private final LiveData<Resource<List<WholesaleInvoiceEntity>>> wholesaleInvoices;
 
     public SalesViewModel(@NonNull Application application) {
         super(application);
@@ -26,15 +27,15 @@ public class SalesViewModel extends AndroidViewModel {
         wholesaleInvoices = repository.getWholesaleInvoices(UserRepository.LOCAL_USER_ID);
     }
 
-    public LiveData<List<RetailSaleEntity>> getRetailSales() {
+    public LiveData<Resource<List<RetailSaleEntity>>> getRetailSales() {
         return retailSales;
     }
 
-    public LiveData<List<WholesaleInvoiceEntity>> getWholesaleInvoices() {
+    public LiveData<Resource<List<WholesaleInvoiceEntity>>> getWholesaleInvoices() {
         return wholesaleInvoices;
     }
 
-    public LiveData<WholesaleInvoiceEntity> getInvoiceById(String invoiceId) {
+    public LiveData<Resource<WholesaleInvoiceEntity>> getInvoiceById(String invoiceId) {
         return repository.getInvoiceById(invoiceId);
     }
 

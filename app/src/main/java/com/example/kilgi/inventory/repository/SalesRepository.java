@@ -13,10 +13,16 @@ import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.RetailSaleEntity;
 import com.example.kilgi.inventory.data.SalesDao;
 import com.example.kilgi.inventory.data.WholesaleInvoiceEntity;
+import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.common.Resource;
+import com.example.kilgi.inventory.network.ApiClient;
+import com.example.kilgi.inventory.network.NetworkBoundResource;
 
 import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
+
+import retrofit2.Call;
 
 public class SalesRepository {
 
@@ -24,24 +30,92 @@ public class SalesRepository {
     private final SalesDao salesDao;
     private final CustomerDao customerDao;
     private final JournalDao journalDao;
+    private final ApiService apiService;
 
     public SalesRepository(Context context) {
         this.database = KilgiDatabase.getInstance(context);
         this.salesDao = database.salesDao();
         this.customerDao = database.customerDao();
         this.journalDao = database.journalDao();
+        this.apiService = ApiClient.getApiService(context);
     }
 
-    public LiveData<List<RetailSaleEntity>> getRetailSales(String userId) {
-        return salesDao.getRetailSalesForUser(userId);
+    public LiveData<Resource<List<RetailSaleEntity>>> getRetailSales(String userId) {
+        return new NetworkBoundResource<List<RetailSaleEntity>, List<RetailSaleEntity>>() {
+            @Override
+            protected LiveData<List<RetailSaleEntity>> loadFromDb() {
+                return salesDao.getRetailSalesForUser(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<RetailSaleEntity> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<RetailSaleEntity>> createCall() {
+                return apiService.getRetailSales();
+            }
+
+            @Override
+            protected void saveCallResult(List<RetailSaleEntity> item) {
+                if (item != null) {
+                    salesDao.insertRetailSales(item);
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<List<WholesaleInvoiceEntity>> getWholesaleInvoices(String userId) {
-        return salesDao.getWholesaleInvoicesForUser(userId);
+    public LiveData<Resource<List<WholesaleInvoiceEntity>>> getWholesaleInvoices(String userId) {
+        return new NetworkBoundResource<List<WholesaleInvoiceEntity>, List<WholesaleInvoiceEntity>>() {
+            @Override
+            protected LiveData<List<WholesaleInvoiceEntity>> loadFromDb() {
+                return salesDao.getWholesaleInvoicesForUser(userId);
+            }
+
+            @Override
+            protected boolean shouldFetch(List<WholesaleInvoiceEntity> data) {
+                return true;
+            }
+
+            @Override
+            protected Call<List<WholesaleInvoiceEntity>> createCall() {
+                return apiService.getWholesaleInvoices();
+            }
+
+            @Override
+            protected void saveCallResult(List<WholesaleInvoiceEntity> item) {
+                if (item != null) {
+                    salesDao.insertWholesaleInvoices(item);
+                }
+            }
+        }.asLiveData();
     }
 
-    public LiveData<WholesaleInvoiceEntity> getInvoiceById(String invoiceId) {
-        return salesDao.getInvoiceById(invoiceId);
+    public LiveData<Resource<WholesaleInvoiceEntity>> getInvoiceById(String invoiceId) {
+        return new NetworkBoundResource<WholesaleInvoiceEntity, WholesaleInvoiceEntity>() {
+            @Override
+            protected LiveData<WholesaleInvoiceEntity> loadFromDb() {
+                return salesDao.getInvoiceById(invoiceId);
+            }
+
+            @Override
+            protected boolean shouldFetch(WholesaleInvoiceEntity data) {
+                return true;
+            }
+
+            @Override
+            protected Call<WholesaleInvoiceEntity> createCall() {
+                return apiService.getInvoiceById(invoiceId);
+            }
+
+            @Override
+            protected void saveCallResult(WholesaleInvoiceEntity item) {
+                if (item != null) {
+                    salesDao.insertWholesaleInvoice(item);
+                }
+            }
+        }.asLiveData();
     }
 
     public void recordRetailSale(double totalAmount, String notes, String userId, Callback<RetailSaleEntity> callback) {

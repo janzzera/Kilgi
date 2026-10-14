@@ -32,6 +32,7 @@ import com.example.kilgi.inventory.data.LotWithDetails;
 import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderEntity;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.repository.LotRepository;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
@@ -136,30 +137,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void observeViewModels() {
-        providerViewModel.getActiveProviders().observe(this, providers -> {
-            if (providers != null) {
-                cachedProviders = providers;
+        providerViewModel.getActiveProviders().observe(this, resource -> {
+            if (resource != null && resource.data != null) {
+                cachedProviders = resource.data;
             }
         });
 
-        lotViewModel.getAllLots().observe(this, lots -> {
-            if (lots != null) {
-                cachedAllLots = lots;
+        lotViewModel.getAllLots().observe(this, resource -> {
+            if (resource != null && resource.data != null) {
+                cachedAllLots = resource.data;
                 refreshDashboardAsync(currentSelectedLotId, null, null, null, currentLotPageIndex, true);
             }
         });
     }
 
     private void checkAuthentication() {
-        userViewModel.getLocalUser().observe(this, user -> {
-            if (user == null || "PENDING_LOGIN_SETUP".equals(user.passwordHash)) {
-                startActivity(new Intent(this, UserSetupActivity.class));
-                finish();
-            } else if (!isUserAuthenticated) {
-                startActivity(new Intent(this, LoginActivity.class));
-                finish();
-            } else {
-                isUserAuthenticated = true;
+        userViewModel.getLocalUser().observe(this, resource -> {
+            if (resource != null) {
+                UserEntity user = resource.data;
+                if (user == null || "PENDING_LOGIN_SETUP".equals(user.passwordHash)) {
+                    startActivity(new Intent(this, UserSetupActivity.class));
+                    finish();
+                } else if (!isUserAuthenticated) {
+                    startActivity(new Intent(this, LoginActivity.class));
+                    finish();
+                } else {
+                    isUserAuthenticated = true;
+                }
             }
         });
     }
