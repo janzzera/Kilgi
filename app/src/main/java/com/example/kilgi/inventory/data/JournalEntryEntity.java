@@ -41,6 +41,7 @@ public class JournalEntryEntity {
     @NonNull
     public final String description;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public JournalEntryEntity(
             @NonNull String entryId,

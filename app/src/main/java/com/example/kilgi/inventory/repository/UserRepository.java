@@ -14,14 +14,18 @@ import com.example.kilgi.inventory.network.NetworkBoundResource;
 
 import retrofit2.Call;
 
+import com.example.kilgi.inventory.sync.SyncManager;
+
 public class UserRepository {
 
     public static final String LOCAL_USER_ID = "local-owner";
 
     private final UserDao userDao;
     private final ApiService apiService;
+    private final Context appContext;
 
     public UserRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.userDao = KilgiDatabase.getInstance(context).userDao();
         this.apiService = ApiClient.getApiService(context);
         ensureLocalUserExists();
@@ -54,11 +58,17 @@ public class UserRepository {
     }
 
     public void updateUser(UserEntity user) {
-        KilgiDatabase.databaseWriteExecutor.execute(() -> userDao.update(user));
+        KilgiDatabase.databaseWriteExecutor.execute(() -> {
+            userDao.update(user);
+            SyncManager.scheduleSync(appContext);
+        });
     }
 
     public void insertUser(UserEntity user) {
-        KilgiDatabase.databaseWriteExecutor.execute(() -> userDao.insert(user));
+        KilgiDatabase.databaseWriteExecutor.execute(() -> {
+            userDao.insert(user);
+            SyncManager.scheduleSync(appContext);
+        });
     }
 
     public void ensureLocalUserExists() {

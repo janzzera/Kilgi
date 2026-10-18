@@ -44,6 +44,9 @@ public interface LotDao {
     @Query("SELECT * FROM lots WHERE lotId = :lotId AND userId = :userId LIMIT 1")
     LotWithDetails getLotWithDetailsSync(String lotId, String userId);
 
+    @Query("SELECT * FROM lots WHERE isSynced = 0")
+    List<LotEntity> getUnsyncedLotsSync();
+
     @Query("DELETE FROM lots WHERE lotId = :lotId")
     void deleteById(String lotId);
 }

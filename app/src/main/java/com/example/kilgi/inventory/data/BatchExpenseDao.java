@@ -19,5 +19,8 @@ public interface BatchExpenseDao {
 
     @Query("SELECT * FROM batch_expenses WHERE lotId = :lotId ORDER BY timestamp ASC")
     LiveData<List<BatchExpenseEntity>> getByLotId(String lotId);
+
+    @Query("SELECT * FROM batch_expenses WHERE isSynced = 0")
+    List<BatchExpenseEntity> getUnsyncedExpensesSync();
 }
 

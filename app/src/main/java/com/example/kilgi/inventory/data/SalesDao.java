@@ -182,5 +182,17 @@ public interface SalesDao {
                     "ORDER BY l.timestamp ASC, l.lotId ASC"
     )
     List<OpenProviderLotPayable> getOpenLotPayablesForProviderSync(String providerId);
+
+    @Query("SELECT * FROM retail_sales WHERE isSynced = 0")
+    List<RetailSaleEntity> getUnsyncedRetailSalesSync();
+
+    @Query("SELECT * FROM wholesale_invoices WHERE isSynced = 0")
+    List<WholesaleInvoiceEntity> getUnsyncedWholesaleInvoicesSync();
+
+    @Query("SELECT * FROM customer_payments WHERE isSynced = 0")
+    List<CustomerPaymentEntity> getUnsyncedCustomerPaymentsSync();
+
+    @Query("SELECT * FROM provider_payments WHERE isSynced = 0")
+    List<ProviderPaymentEntity> getUnsyncedProviderPaymentsSync();
 }
 

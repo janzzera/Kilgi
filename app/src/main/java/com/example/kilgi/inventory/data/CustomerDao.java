@@ -28,5 +28,8 @@ public interface CustomerDao {
 
     @Query("SELECT * FROM customers WHERE userId = :userId AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
     List<CustomerEntity> getActiveCustomersForUserSync(String userId);
+
+    @Query("SELECT * FROM customers WHERE isSynced = 0")
+    List<CustomerEntity> getUnsyncedCustomersSync();
 }
 

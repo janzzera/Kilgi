@@ -57,6 +57,9 @@ public interface JournalDao {
     @Query("SELECT MAX(timestamp) FROM journal_entries WHERE userId = :userId")
     Long getLatestEntryTimestampSync(String userId);
 
+    @Query("SELECT * FROM journal_entries WHERE isSynced = 0")
+    List<JournalEntryEntity> getUnsyncedJournalEntriesSync();
+
     @Query("DELETE FROM journal_entries WHERE lotId = :lotId")
     void deleteByLotId(String lotId);
 }

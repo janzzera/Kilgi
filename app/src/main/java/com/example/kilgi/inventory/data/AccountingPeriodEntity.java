@@ -23,6 +23,8 @@ public class AccountingPeriodEntity {
 
     public String userId;
 
+    public boolean isSynced = false;
+
     public AccountingPeriodEntity(
             @NonNull String periodName,
             long startDate,

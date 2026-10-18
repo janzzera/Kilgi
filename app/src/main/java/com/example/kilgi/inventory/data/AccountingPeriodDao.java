@@ -33,6 +33,9 @@ public interface AccountingPeriodDao {
     @Query("SELECT * FROM accounting_periods WHERE periodId = :periodId LIMIT 1")
     AccountingPeriodEntity getByIdSync(long periodId);
 
+    @Query("SELECT * FROM accounting_periods WHERE isSynced = 0")
+    List<AccountingPeriodEntity> getUnsyncedPeriodsSync();
+
     @Query("SELECT EXISTS(SELECT 1 FROM accounting_periods WHERE userId = :userId AND isClosed = 1 AND :timestamp >= startDate AND :timestamp <= endDate)")
     boolean isTimestampLocked(String userId, long timestamp);
     

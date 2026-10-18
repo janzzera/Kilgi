@@ -37,6 +37,7 @@ public class JournalLineEntity {
     public final String customerId;
     public final String paymentSource;
     public final String memo;
+    public boolean isSynced = false;
 
     public JournalLineEntity(
             @NonNull String lineId,

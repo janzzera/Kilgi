@@ -19,5 +19,8 @@ public interface SpoilageLogDao {
 
     @Query("SELECT * FROM spoilage_logs WHERE lotId = :lotId ORDER BY timestamp ASC")
     LiveData<List<SpoilageLogEntity>> getByLotId(String lotId);
+
+    @Query("SELECT * FROM spoilage_logs WHERE isSynced = 0")
+    List<SpoilageLogEntity> getUnsyncedSpoilageLogsSync();
 }
 

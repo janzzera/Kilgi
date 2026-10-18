@@ -30,6 +30,8 @@ import java.util.UUID;
 
 import retrofit2.Call;
 
+import com.example.kilgi.inventory.sync.SyncManager;
+
 public class LotRepository {
 
     private final KilgiDatabase database;
@@ -37,8 +39,10 @@ public class LotRepository {
     private final ProviderDao providerDao;
     private final JournalDao journalDao;
     private final ApiService apiService;
+    private final Context appContext;
 
     public LotRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.database = KilgiDatabase.getInstance(context);
         this.lotDao = database.lotDao();
         this.providerDao = database.providerDao();
@@ -162,6 +166,7 @@ public class LotRepository {
                     journalDao.insertEntry(draft.getEntry());
                     journalDao.insertLines(draft.getLines());
                 });
+                SyncManager.scheduleSync(appContext);
 
                 if (callback != null) callback.onSuccess(lot);
             } catch (Exception e) {
@@ -181,6 +186,7 @@ public class LotRepository {
                     journalDao.deleteByLotId(lotId);
                     lotDao.deleteById(lotId);
                 });
+                SyncManager.scheduleSync(appContext);
                 if (callback != null) callback.onSuccess(null);
             } catch (Exception e) {
                 if (callback != null) callback.onError(e);
@@ -222,6 +228,7 @@ public class LotRepository {
                     journalDao.insertEntry(draft.getEntry());
                     journalDao.insertLines(draft.getLines());
                 });
+                SyncManager.scheduleSync(appContext);
 
                 if (callback != null) callback.onSuccess(expense);
             } catch (Exception e) {
@@ -275,6 +282,7 @@ public class LotRepository {
                         journalDao.insertLines(draft.getLines());
                     }
                 });
+                SyncManager.scheduleSync(appContext);
 
                 if (callback != null) callback.onSuccess(log);
             } catch (Exception e) {

@@ -26,6 +26,7 @@ public class RetailSaleEntity {
     public final double totalAmount;
     public final String notes;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public RetailSaleEntity(
             @NonNull String saleId,

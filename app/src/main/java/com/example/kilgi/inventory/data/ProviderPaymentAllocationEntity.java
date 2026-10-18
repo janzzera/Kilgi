@@ -36,6 +36,7 @@ public class ProviderPaymentAllocationEntity {
     public final double amountApplied;
     public final int allocationOrder;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public ProviderPaymentAllocationEntity(
             @NonNull String allocationId,

@@ -28,5 +28,8 @@ public interface ProviderDao {
 
     @Query("SELECT * FROM providers WHERE userId = :userId AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
     List<ProviderEntity> getActiveProvidersForUserSync(String userId);
+
+    @Query("SELECT * FROM providers WHERE isSynced = 0")
+    List<ProviderEntity> getUnsyncedProvidersSync();
 }
 

@@ -20,13 +20,17 @@ import java.util.List;
 
 import retrofit2.Call;
 
+import com.example.kilgi.inventory.sync.SyncManager;
+
 public class JournalRepository {
 
     private final KilgiDatabase database;
     private final JournalDao journalDao;
     private final ApiService apiService;
+    private final Context appContext;
 
     public JournalRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.database = KilgiDatabase.getInstance(context);
         this.journalDao = database.journalDao();
         this.apiService = ApiClient.getApiService(context);
@@ -222,6 +226,7 @@ public class JournalRepository {
                     journalDao.insertEntry(draft.getEntry());
                     journalDao.insertLines(draft.getLines());
                 });
+                SyncManager.scheduleSync(appContext);
 
                 if (callback != null) callback.onSuccess(null);
             } catch (Exception e) {

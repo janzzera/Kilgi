@@ -24,6 +24,8 @@ import java.util.UUID;
 
 import retrofit2.Call;
 
+import com.example.kilgi.inventory.sync.SyncManager;
+
 public class SalesRepository {
 
     private final KilgiDatabase database;
@@ -31,8 +33,10 @@ public class SalesRepository {
     private final CustomerDao customerDao;
     private final JournalDao journalDao;
     private final ApiService apiService;
+    private final Context appContext;
 
     public SalesRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.database = KilgiDatabase.getInstance(context);
         this.salesDao = database.salesDao();
         this.customerDao = database.customerDao();
@@ -139,6 +143,7 @@ public class SalesRepository {
                     journalDao.insertEntry(draft.getEntry());
                     journalDao.insertLines(draft.getLines());
                 });
+                SyncManager.scheduleSync(appContext);
 
                 if (callback != null) callback.onSuccess(sale);
             } catch (Exception e) {
@@ -183,6 +188,7 @@ public class SalesRepository {
                     journalDao.insertEntry(draft.getEntry());
                     journalDao.insertLines(draft.getLines());
                 });
+                SyncManager.scheduleSync(appContext);
 
                 if (callback != null) callback.onSuccess(invoice);
             } catch (Exception e) {

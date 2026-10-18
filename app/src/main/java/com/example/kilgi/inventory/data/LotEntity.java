@@ -46,6 +46,7 @@ public class LotEntity {
     @NonNull
     public final String freightPaymentSource;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public LotEntity(
             @NonNull String lotId,

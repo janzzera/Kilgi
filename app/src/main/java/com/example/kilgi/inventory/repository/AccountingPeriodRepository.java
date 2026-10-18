@@ -16,13 +16,17 @@ import java.util.List;
 
 import retrofit2.Call;
 
+import com.example.kilgi.inventory.sync.SyncManager;
+
 public class AccountingPeriodRepository {
 
     private final KilgiDatabase database;
     private final AccountingPeriodDao periodDao;
     private final ApiService apiService;
+    private final Context appContext;
 
     public AccountingPeriodRepository(Context context) {
+        this.appContext = context.getApplicationContext();
         this.database = KilgiDatabase.getInstance(context);
         this.periodDao = database.accountingPeriodDao();
         this.apiService = ApiClient.getApiService(context);
@@ -88,6 +92,7 @@ public class AccountingPeriodRepository {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 periodDao.insert(new AccountingPeriodEntity(name, start, end, false, null, userId));
+                SyncManager.scheduleSync(appContext);
                 if (callback != null) callback.onSuccess(null);
             } catch (Exception e) {
                 if (callback != null) callback.onError(e);
@@ -103,6 +108,7 @@ public class AccountingPeriodRepository {
                     period.isClosed = true;
                     period.closedAt = System.currentTimeMillis();
                     periodDao.update(period);
+                    SyncManager.scheduleSync(appContext);
                 }
                 if (callback != null) callback.onSuccess(null);
             } catch (Exception e) {
