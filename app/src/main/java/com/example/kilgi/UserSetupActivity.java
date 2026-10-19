@@ -72,7 +72,6 @@ public class UserSetupActivity extends AppCompatActivity {
         }
 
         if (currentUser != null) {
-            String[] hashAndSalt = PasswordHasher.hashPassword(password);
             UserEntity updatedUser = new UserEntity(
                     currentUser.userId,
                     currentUser.username,
@@ -80,8 +79,8 @@ public class UserSetupActivity extends AppCompatActivity {
                     businessName,
                     currentUser.emailAddress,
                     currentUser.mobileNumber,
-                    hashAndSalt[0], // Base64 HMAC-SHA512 password hash
-                    hashAndSalt[1], // Base64 salt
+                    password, // Base64 HMAC-SHA512 password hash
+                    "none", // Base64 salt
                     "ACTIVE",
                     currentUser.createdAt,
                     System.currentTimeMillis()
