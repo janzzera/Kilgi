@@ -6,13 +6,6 @@ import android.text.TextUtils;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.util.Base64;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.InvalidKeyException;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,6 +15,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.security.PasswordHasher;
 import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
 public class LoginActivity extends AppCompatActivity {
@@ -30,7 +24,6 @@ public class LoginActivity extends AppCompatActivity {
     private TextView businessNameLabel;
     private UserViewModel userViewModel;
     private UserEntity currentUser;
-    private final String HMAC_SHA512_ALGORITHM = "HmacSHA512";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +61,7 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         if (currentUser != null) {
-            if (this.verifyPasswordHash(password, currentUser.passwordHash, currentUser.passwordSalt)) {
+            if (PasswordHasher.verifyPasswordHash(password, currentUser.passwordHash, currentUser.passwordSalt)) {
                 MainActivity.isUserAuthenticated = true;
                 startActivity(new Intent(this, MainActivity.class));
                 finish();
@@ -76,28 +69,6 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(this, "Incorrect password", Toast.LENGTH_SHORT).show();
                 passwordInput.setText("");
             }
-        }
-    }
-
-    public boolean verifyPasswordHash(String password, String storedHashBase64, String storedSaltBase64) {
-        if(password == null || storedHashBase64 == null)
-            return false;
-
-        try {
-            byte[] storedHash = Base64.decode(storedHashBase64, Base64.DEFAULT);
-            byte[] storedSalt = Base64.decode(storedSaltBase64, Base64.DEFAULT);
-
-            SecretKeySpec secretKey = new SecretKeySpec(storedSalt, HMAC_SHA512_ALGORITHM);
-            Mac mac = Mac.getInstance(HMAC_SHA512_ALGORITHM);
-            mac.init(secretKey);
-
-            byte[] computedHash = mac.doFinal(password.getBytes(StandardCharsets.UTF_8));
-
-            return MessageDigest.isEqual(computedHash, storedHash);
-
-        } catch (NoSuchAlgorithmException | InvalidKeyException | IllegalArgumentException e) {
-            e.printStackTrace();
-            return false;
         }
     }
 }

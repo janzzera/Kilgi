@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.security.PasswordHasher;
 import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
 public class UserSetupActivity extends AppCompatActivity {
@@ -35,16 +36,22 @@ public class UserSetupActivity extends AppCompatActivity {
             return insets;
         });
 
+        displayNameInput = findViewById(R.id.edit_display_name);
+        businessNameInput = findViewById(R.id.edit_business_name);
+        passwordInput = findViewById(R.id.edit_password);
+
         userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
         userViewModel.getLocalUser().observe(this, userResource -> {
             if (userResource != null && userResource.data != null) {
                 currentUser = userResource.data;
+                if (displayNameInput.getText().length() == 0 && currentUser.displayName != null && !"Local Owner".equals(currentUser.displayName)) {
+                    displayNameInput.setText(currentUser.displayName);
+                }
+                if (businessNameInput.getText().length() == 0 && currentUser.businessName != null && !"Kilgi Demo Business".equals(currentUser.businessName)) {
+                    businessNameInput.setText(currentUser.businessName);
+                }
             }
         });
-
-        displayNameInput = findViewById(R.id.edit_display_name);
-        businessNameInput = findViewById(R.id.edit_business_name);
-        passwordInput = findViewById(R.id.edit_password);
 
         findViewById(R.id.button_save_setup).setOnClickListener(v -> saveSetup());
     }
@@ -65,6 +72,7 @@ public class UserSetupActivity extends AppCompatActivity {
         }
 
         if (currentUser != null) {
+            String[] hashAndSalt = PasswordHasher.hashPassword(password);
             UserEntity updatedUser = new UserEntity(
                     currentUser.userId,
                     currentUser.username,
@@ -72,17 +80,18 @@ public class UserSetupActivity extends AppCompatActivity {
                     businessName,
                     currentUser.emailAddress,
                     currentUser.mobileNumber,
-                    password,
-                    "none",
+                    hashAndSalt[0], // Base64 HMAC-SHA512 password hash
+                    hashAndSalt[1], // Base64 salt
                     "ACTIVE",
                     currentUser.createdAt,
                     System.currentTimeMillis()
             );
-            userViewModel.updateUser(updatedUser);
-            MainActivity.isUserAuthenticated = true;
-            Toast.makeText(this, "Setup complete!", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            userViewModel.updateUser(updatedUser, () -> {
+                MainActivity.isUserAuthenticated = true;
+                Toast.makeText(this, "Setup complete!", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, MainActivity.class));
+                finish();
+            });
         }
     }
 }

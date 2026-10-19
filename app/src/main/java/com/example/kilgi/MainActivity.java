@@ -33,6 +33,7 @@ import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderEntity;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
 import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.input.InventoryInputParser;
 import com.example.kilgi.inventory.repository.LotRepository;
 import com.example.kilgi.inventory.service.BatchValuationEngine;
@@ -154,6 +155,10 @@ public class MainActivity extends AppCompatActivity {
     private void checkAuthentication() {
         userViewModel.getLocalUser().observe(this, resource -> {
             if (resource != null) {
+                if (resource.status == Resource.Status.LOADING && resource.data == null) {
+                    return;
+                }
+
                 UserEntity user = resource.data;
                 if (user == null || "PENDING_LOGIN_SETUP".equals(user.passwordHash)) {
                     startActivity(new Intent(this, UserSetupActivity.class));

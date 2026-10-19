@@ -32,4 +32,8 @@ public class UserViewModel extends AndroidViewModel {
     public void updateUser(UserEntity user) {
         repository.updateUser(user);
     }
+
+    public void updateUser(UserEntity user, Runnable onComplete) {
+        repository.updateUser(user, onComplete);
+    }
 }

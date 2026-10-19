@@ -14,6 +14,7 @@ import com.example.kilgi.inventory.network.NetworkBoundResource;
 
 import retrofit2.Call;
 
+import com.example.kilgi.inventory.data.common.AppExecutors;
 import com.example.kilgi.inventory.sync.SyncManager;
 
 public class UserRepository {
@@ -40,7 +41,7 @@ public class UserRepository {
 
             @Override
             protected boolean shouldFetch(UserEntity data) {
-                return true;
+                return data == null && !LOCAL_USER_ID.equals(userId);
             }
 
             @Override
@@ -58,9 +59,16 @@ public class UserRepository {
     }
 
     public void updateUser(UserEntity user) {
+        updateUser(user, null);
+    }
+
+    public void updateUser(UserEntity user, Runnable onComplete) {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             userDao.update(user);
             SyncManager.scheduleSync(appContext);
+            if (onComplete != null) {
+                AppExecutors.runOnMainThread(onComplete);
+            }
         });
     }
 
@@ -73,20 +81,23 @@ public class UserRepository {
 
     public void ensureLocalUserExists() {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
-            long now = System.currentTimeMillis();
-            userDao.insert(new UserEntity(
-                    LOCAL_USER_ID,
-                    "local_owner",
-                    "Local Owner",
-                    "Kilgi Demo Business",
-                    null,
-                    null,
-                    "PENDING_LOGIN_SETUP",
-                    "PENDING_LOGIN_SETUP",
-                    "ACTIVE",
-                    now,
-                    now
-            ));
+            UserEntity existing = userDao.getByIdSync(LOCAL_USER_ID);
+            if (existing == null) {
+                long now = System.currentTimeMillis();
+                userDao.insert(new UserEntity(
+                        LOCAL_USER_ID,
+                        "local_owner",
+                        "Local Owner",
+                        "Kilgi Demo Business",
+                        null,
+                        null,
+                        "PENDING_LOGIN_SETUP",
+                        "PENDING_LOGIN_SETUP",
+                        "ACTIVE",
+                        now,
+                        now
+                ));
+            }
         });
     }
 }
