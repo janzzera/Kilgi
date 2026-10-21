@@ -659,7 +659,7 @@ public class MainActivity extends AppCompatActivity {
             if (!LotFilterUtils.matchesDateRange(lot.timestamp, fromMillis, toMillis)) {
                 continue;
             }
-            LotWithDetails lotWithDetails = lotViewModel.getLotWithDetails(lot.lotId).getValue();
+            LotWithDetails lotWithDetails = lotViewModel.getLotWithDetailsSync(lot.lotId);
             if (lotWithDetails == null) continue;
             BatchValuationSnapshot snapshot = BatchValuationEngine.calculate(
                     lotWithDetails.lot,

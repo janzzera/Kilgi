@@ -110,6 +110,18 @@ public class LotRepository {
         return lotDao.getLotWithDetails(lotId, userId);
     }
 
+    public LotWithDetails getLotWithDetailsSync(String lotId, String userId) {
+        return lotDao.getLotWithDetailsSync(lotId, userId);
+    }
+
+    public LotEntity getLatestLotSync(String userId) {
+        return lotDao.getLatestLotSync(userId);
+    }
+
+    public LotEntity getLotByIdSync(String lotId, String userId) {
+        return lotDao.getLotByIdSync(lotId, userId);
+    }
+
     public void createLot(
             String providerId,
             String vegetableType,

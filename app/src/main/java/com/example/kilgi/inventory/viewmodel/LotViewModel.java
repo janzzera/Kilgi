@@ -48,6 +48,18 @@ public class LotViewModel extends AndroidViewModel {
         return repository.getLotWithDetails(lotId, UserRepository.LOCAL_USER_ID);
     }
 
+    public LotWithDetails getLotWithDetailsSync(String lotId) {
+        return repository.getLotWithDetailsSync(lotId, UserRepository.LOCAL_USER_ID);
+    }
+
+    public LotEntity getLatestLotSync() {
+        return repository.getLatestLotSync(UserRepository.LOCAL_USER_ID);
+    }
+
+    public LotEntity getLotByIdSync(String lotId) {
+        return repository.getLotByIdSync(lotId, UserRepository.LOCAL_USER_ID);
+    }
+
     public void createLot(
             String providerId,
             String vegetableType,

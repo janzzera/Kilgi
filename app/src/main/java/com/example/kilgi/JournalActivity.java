@@ -261,15 +261,14 @@ public class JournalActivity extends AppCompatActivity {
 
         if (!TextUtils.isEmpty(initialLotId)) {
             try {
-                com.example.kilgi.inventory.data.common.Resource<LotEntity> resource = lotViewModel.getLotById(initialLotId).getValue();
-                LotEntity lot = resource != null ? resource.data : null;
+                LotEntity lot = lotViewModel.getLotByIdSync(initialLotId);
                 if (lot != null) {
                     selectedCalendar.setTimeInMillis(lot.timestamp);
                 }
             } catch (Exception ignored) {
             }
         } else {
-            LotEntity latestLot = lotViewModel.getLatestLot().getValue();
+            LotEntity latestLot = lotViewModel.getLatestLotSync();
             if (latestLot != null) {
                 selectedCalendar.setTimeInMillis(latestLot.timestamp);
             }
