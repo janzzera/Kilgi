@@ -14,7 +14,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.kilgi.inventory.data.UserEntity;
-import com.example.kilgi.inventory.security.PasswordHasher;
+import com.example.kilgi.inventory.network.NetworkUtils;
+import com.example.kilgi.inventory.repository.UserRepository;
 import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
 public class UserSetupActivity extends AppCompatActivity {
@@ -57,6 +58,11 @@ public class UserSetupActivity extends AppCompatActivity {
     }
 
     private void saveSetup() {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, "An active internet connection is required to complete initial user setup.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         String displayName = displayNameInput.getText().toString().trim();
         String businessName = businessNameInput.getText().toString().trim();
         String password = passwordInput.getText().toString();
@@ -79,17 +85,25 @@ public class UserSetupActivity extends AppCompatActivity {
                     businessName,
                     currentUser.emailAddress,
                     currentUser.mobileNumber,
-                    password, // Base64 HMAC-SHA512 password hash
-                    "none", // Base64 salt
+                    password,
+                    "none",
                     "ACTIVE",
                     currentUser.createdAt,
                     System.currentTimeMillis()
             );
-            userViewModel.updateUser(updatedUser, () -> {
-                MainActivity.isUserAuthenticated = true;
-                Toast.makeText(this, "Setup complete!", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(this, MainActivity.class));
-                finish();
+            userViewModel.registerOrSetupUser(updatedUser, new UserRepository.Callback<UserEntity>() {
+                @Override
+                public void onSuccess(UserEntity result) {
+                    MainActivity.isUserAuthenticated = true;
+                    Toast.makeText(UserSetupActivity.this, "Setup complete!", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(UserSetupActivity.this, MainActivity.class));
+                    finish();
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    Toast.makeText(UserSetupActivity.this, "Setup failed: " + throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                }
             });
         }
     }

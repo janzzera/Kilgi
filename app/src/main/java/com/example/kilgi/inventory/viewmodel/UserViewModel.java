@@ -36,4 +36,8 @@ public class UserViewModel extends AndroidViewModel {
     public void updateUser(UserEntity user, Runnable onComplete) {
         repository.updateUser(user, onComplete);
     }
+
+    public void registerOrSetupUser(UserEntity user, UserRepository.Callback<UserEntity> callback) {
+        repository.registerOrSetupUser(user, callback);
+    }
 }

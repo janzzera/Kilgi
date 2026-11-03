@@ -13,6 +13,7 @@ import com.example.kilgi.inventory.network.ApiClient;
 import com.example.kilgi.inventory.network.NetworkBoundResource;
 
 import retrofit2.Call;
+import retrofit2.Response;
 
 import com.example.kilgi.inventory.data.common.AppExecutors;
 import com.example.kilgi.inventory.sync.SyncManager;
@@ -70,6 +71,56 @@ public class UserRepository {
                 AppExecutors.runOnMainThread(onComplete);
             }
         });
+    }
+
+    public void registerOrSetupUser(UserEntity user, Callback<UserEntity> callback) {
+        KilgiDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                Response<UserEntity> response = apiService.registerUser(user).execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    UserEntity serverUser = response.body();
+                    serverUser.isSynced = true;
+                    userDao.insert(serverUser);
+                    if (callback != null) {
+                        AppExecutors.runOnMainThread(() -> callback.onSuccess(serverUser));
+                    }
+                } else {
+                    Response<UserEntity> updateResponse = apiService.updateUser(user.userId, user).execute();
+                    if (updateResponse.isSuccessful() && updateResponse.body() != null) {
+                        UserEntity serverUser = updateResponse.body();
+                        serverUser.isSynced = true;
+                        userDao.insert(serverUser);
+                        if (callback != null) {
+                            AppExecutors.runOnMainThread(() -> callback.onSuccess(serverUser));
+                        }
+                    } else {
+                        String errorMsg = "Server registration failed (HTTP " + response.code() + ")";
+                        if (response.errorBody() != null) {
+                            try {
+                                String errBody = response.errorBody().string();
+                                if (!errBody.trim().isEmpty()) {
+                                    errorMsg += ": " + errBody;
+                                }
+                            } catch (Exception ignored) {
+                            }
+                        }
+                        String finalErrorMsg = errorMsg;
+                        if (callback != null) {
+                            AppExecutors.runOnMainThread(() -> callback.onError(new Exception(finalErrorMsg)));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                if (callback != null) {
+                    AppExecutors.runOnMainThread(() -> callback.onError(e));
+                }
+            }
+        });
+    }
+
+    public interface Callback<T> {
+        void onSuccess(T result);
+        void onError(Throwable throwable);
     }
 
     public void insertUser(UserEntity user) {
