@@ -77,21 +77,25 @@ public class UserSetupActivity extends AppCompatActivity {
             return;
         }
 
-        if (currentUser != null) {
-            UserEntity updatedUser = new UserEntity(
-                    currentUser.userId,
-                    currentUser.username,
-                    displayName,
-                    businessName,
-                    currentUser.emailAddress,
-                    currentUser.mobileNumber,
-                    password,
-                    "none",
-                    "ACTIVE",
-                    currentUser.createdAt,
-                    System.currentTimeMillis()
-            );
-            userViewModel.registerOrSetupUser(updatedUser, new UserRepository.Callback<UserEntity>() {
+        String userId = currentUser != null ? currentUser.userId : UserRepository.LOCAL_USER_ID;
+        String username = currentUser != null ? currentUser.username : "local_owner";
+        long createdAt = currentUser != null ? currentUser.createdAt : System.currentTimeMillis();
+
+        UserEntity updatedUser = new UserEntity(
+                userId,
+                username,
+                displayName,
+                businessName,
+                currentUser != null ? currentUser.emailAddress : null,
+                currentUser != null ? currentUser.mobileNumber : null,
+                password,
+                "none",
+                "ACTIVE",
+                createdAt,
+                System.currentTimeMillis()
+        );
+
+        userViewModel.registerOrSetupUser(updatedUser, new UserRepository.Callback<UserEntity>() {
                 @Override
                 public void onSuccess(UserEntity result) {
                     MainActivity.isUserAuthenticated = true;
@@ -105,6 +109,5 @@ public class UserSetupActivity extends AppCompatActivity {
                     Toast.makeText(UserSetupActivity.this, "Setup failed: " + throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                 }
             });
-        }
     }
 }

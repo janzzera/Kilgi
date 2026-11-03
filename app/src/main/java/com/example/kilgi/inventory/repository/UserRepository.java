@@ -77,37 +77,49 @@ public class UserRepository {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 Response<UserEntity> response = apiService.registerUser(user).execute();
-                if (response.isSuccessful() && response.body() != null) {
-                    UserEntity serverUser = response.body();
-                    serverUser.isSynced = true;
-                    userDao.insert(serverUser);
+                UserEntity serverUser = response.isSuccessful() ? response.body() : null;
+
+                if (serverUser == null) {
+                    Response<UserEntity> updateResponse = apiService.updateUser(user.userId, user).execute();
+                    if (updateResponse.isSuccessful()) {
+                        serverUser = updateResponse.body();
+                    }
+                }
+
+                if (serverUser != null) {
+                    UserEntity localUpdated = new UserEntity(
+                            LOCAL_USER_ID,
+                            serverUser.username != null ? serverUser.username : user.username,
+                            serverUser.displayName != null ? serverUser.displayName : user.displayName,
+                            serverUser.businessName != null ? serverUser.businessName : user.businessName,
+                            serverUser.emailAddress,
+                            serverUser.mobileNumber,
+                            serverUser.passwordHash,
+                            serverUser.passwordSalt,
+                            "ACTIVE",
+                            user.createdAt,
+                            System.currentTimeMillis()
+                    );
+                    localUpdated.isSynced = true;
+                    userDao.insert(localUpdated);
+
                     if (callback != null) {
-                        AppExecutors.runOnMainThread(() -> callback.onSuccess(serverUser));
+                        AppExecutors.runOnMainThread(() -> callback.onSuccess(localUpdated));
                     }
                 } else {
-                    Response<UserEntity> updateResponse = apiService.updateUser(user.userId, user).execute();
-                    if (updateResponse.isSuccessful() && updateResponse.body() != null) {
-                        UserEntity serverUser = updateResponse.body();
-                        serverUser.isSynced = true;
-                        userDao.insert(serverUser);
-                        if (callback != null) {
-                            AppExecutors.runOnMainThread(() -> callback.onSuccess(serverUser));
-                        }
-                    } else {
-                        String errorMsg = "Server registration failed (HTTP " + response.code() + ")";
-                        if (response.errorBody() != null) {
-                            try {
-                                String errBody = response.errorBody().string();
-                                if (!errBody.trim().isEmpty()) {
-                                    errorMsg += ": " + errBody;
-                                }
-                            } catch (Exception ignored) {
+                    String errorMsg = "Server setup failed (HTTP " + response.code() + ")";
+                    if (response.errorBody() != null) {
+                        try {
+                            String errBody = response.errorBody().string();
+                            if (!errBody.trim().isEmpty()) {
+                                errorMsg += ": " + errBody;
                             }
+                        } catch (Exception ignored) {
                         }
-                        String finalErrorMsg = errorMsg;
-                        if (callback != null) {
-                            AppExecutors.runOnMainThread(() -> callback.onError(new Exception(finalErrorMsg)));
-                        }
+                    }
+                    String finalErrorMsg = errorMsg;
+                    if (callback != null) {
+                        AppExecutors.runOnMainThread(() -> callback.onError(new Exception(finalErrorMsg)));
                     }
                 }
             } catch (Exception e) {
