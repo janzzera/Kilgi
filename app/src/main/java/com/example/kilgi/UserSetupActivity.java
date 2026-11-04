@@ -20,9 +20,13 @@ import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
 public class UserSetupActivity extends AppCompatActivity {
 
+    private EditText usernameInput;
     private EditText displayNameInput;
     private EditText businessNameInput;
+    private EditText emailAddressInput;
+    private EditText mobileNumberInput;
     private EditText passwordInput;
+    private EditText confirmPasswordInput;
     private UserViewModel userViewModel;
     private UserEntity currentUser;
 
@@ -37,19 +41,32 @@ public class UserSetupActivity extends AppCompatActivity {
             return insets;
         });
 
+        usernameInput = findViewById(R.id.edit_username);
         displayNameInput = findViewById(R.id.edit_display_name);
         businessNameInput = findViewById(R.id.edit_business_name);
+        emailAddressInput = findViewById(R.id.edit_email_address);
+        mobileNumberInput = findViewById(R.id.edit_mobile_number);
         passwordInput = findViewById(R.id.edit_password);
+        confirmPasswordInput = findViewById(R.id.edit_confirm_password);
 
         userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
         userViewModel.getLocalUser().observe(this, userResource -> {
             if (userResource != null && userResource.data != null) {
                 currentUser = userResource.data;
+                if (usernameInput.getText().length() == 0 && currentUser.username != null && !"local_owner".equals(currentUser.username)) {
+                    usernameInput.setText(currentUser.username);
+                }
                 if (displayNameInput.getText().length() == 0 && currentUser.displayName != null && !"Local Owner".equals(currentUser.displayName)) {
                     displayNameInput.setText(currentUser.displayName);
                 }
                 if (businessNameInput.getText().length() == 0 && currentUser.businessName != null && !"Kilgi Demo Business".equals(currentUser.businessName)) {
                     businessNameInput.setText(currentUser.businessName);
+                }
+                if (emailAddressInput.getText().length() == 0 && currentUser.emailAddress != null) {
+                    emailAddressInput.setText(currentUser.emailAddress);
+                }
+                if (mobileNumberInput.getText().length() == 0 && currentUser.mobileNumber != null) {
+                    mobileNumberInput.setText(currentUser.mobileNumber);
                 }
             }
         });
@@ -63,12 +80,21 @@ public class UserSetupActivity extends AppCompatActivity {
             return;
         }
 
+        String username = usernameInput.getText().toString().trim();
         String displayName = displayNameInput.getText().toString().trim();
         String businessName = businessNameInput.getText().toString().trim();
+        String emailAddress = emailAddressInput.getText().toString().trim();
+        String mobileNumber = mobileNumberInput.getText().toString().trim();
         String password = passwordInput.getText().toString();
+        String confirmPassword = confirmPasswordInput.getText().toString();
 
-        if (TextUtils.isEmpty(displayName) || TextUtils.isEmpty(businessName) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(displayName) || TextUtils.isEmpty(businessName) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
+            Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!password.equals(confirmPassword)) {
+            Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -78,7 +104,6 @@ public class UserSetupActivity extends AppCompatActivity {
         }
 
         String userId = currentUser != null ? currentUser.userId : UserRepository.LOCAL_USER_ID;
-        String username = currentUser != null ? currentUser.username : "local_owner";
         long createdAt = currentUser != null ? currentUser.createdAt : System.currentTimeMillis();
 
         UserEntity updatedUser = new UserEntity(
@@ -86,8 +111,8 @@ public class UserSetupActivity extends AppCompatActivity {
                 username,
                 displayName,
                 businessName,
-                currentUser != null ? currentUser.emailAddress : null,
-                currentUser != null ? currentUser.mobileNumber : null,
+                TextUtils.isEmpty(emailAddress) ? null : emailAddress,
+                TextUtils.isEmpty(mobileNumber) ? null : mobileNumber,
                 password,
                 "none",
                 "ACTIVE",
@@ -96,18 +121,18 @@ public class UserSetupActivity extends AppCompatActivity {
         );
 
         userViewModel.registerOrSetupUser(updatedUser, new UserRepository.Callback<UserEntity>() {
-                @Override
-                public void onSuccess(UserEntity result) {
-                    MainActivity.isUserAuthenticated = true;
-                    Toast.makeText(UserSetupActivity.this, "Setup complete!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(UserSetupActivity.this, MainActivity.class));
-                    finish();
-                }
+            @Override
+            public void onSuccess(UserEntity result) {
+                MainActivity.isUserAuthenticated = true;
+                Toast.makeText(UserSetupActivity.this, "Setup complete!", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(UserSetupActivity.this, MainActivity.class));
+                finish();
+            }
 
-                @Override
-                public void onError(Throwable throwable) {
-                    Toast.makeText(UserSetupActivity.this, "Setup failed: " + throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                }
-            });
+            @Override
+            public void onError(Throwable throwable) {
+                Toast.makeText(UserSetupActivity.this, "Setup failed: " + throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }
