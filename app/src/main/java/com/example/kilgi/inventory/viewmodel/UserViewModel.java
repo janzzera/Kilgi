@@ -18,7 +18,7 @@ public class UserViewModel extends AndroidViewModel {
     public UserViewModel(@NonNull Application application) {
         super(application);
         repository = new UserRepository(application);
-        localUser = repository.getUser(UserRepository.LOCAL_USER_ID);
+        localUser = repository.getLocalUser();
     }
 
     public LiveData<Resource<UserEntity>> getLocalUser() {

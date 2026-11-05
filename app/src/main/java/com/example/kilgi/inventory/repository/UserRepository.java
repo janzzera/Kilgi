@@ -33,6 +33,29 @@ public class UserRepository {
         ensureLocalUserExists();
     }
 
+    public LiveData<Resource<UserEntity>> getLocalUser() {
+        return new NetworkBoundResource<UserEntity, UserEntity>() {
+            @Override
+            protected LiveData<UserEntity> loadFromDb() {
+                return userDao.getAnyUser();
+            }
+
+            @Override
+            protected boolean shouldFetch(UserEntity data) {
+                return false;
+            }
+
+            @Override
+            protected Call<UserEntity> createCall() {
+                return null;
+            }
+
+            @Override
+            protected void saveCallResult(UserEntity item) {
+            }
+        }.asLiveData();
+    }
+
     public LiveData<Resource<UserEntity>> getUser(String userId) {
         return new NetworkBoundResource<UserEntity, UserEntity>() {
             @Override
@@ -88,7 +111,7 @@ public class UserRepository {
 
                 if (serverUser != null) {
                     UserEntity localUpdated = new UserEntity(
-                            LOCAL_USER_ID,
+                            serverUser.userId,
                             serverUser.username != null ? serverUser.username : user.username,
                             serverUser.displayName != null ? serverUser.displayName : user.displayName,
                             serverUser.businessName != null ? serverUser.businessName : user.businessName,
@@ -102,6 +125,9 @@ public class UserRepository {
                     );
                     localUpdated.isSynced = true;
                     userDao.insert(localUpdated);
+                    if (!LOCAL_USER_ID.equals(serverUser.userId)) {
+                        userDao.deleteById(LOCAL_USER_ID);
+                    }
 
                     if (callback != null) {
                         AppExecutors.runOnMainThread(() -> callback.onSuccess(localUpdated));
@@ -144,7 +170,7 @@ public class UserRepository {
 
     public void ensureLocalUserExists() {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
-            UserEntity existing = userDao.getByIdSync(LOCAL_USER_ID);
+            UserEntity existing = userDao.getAnyUserSync();
             if (existing == null) {
                 long now = System.currentTimeMillis();
                 userDao.insert(new UserEntity(
