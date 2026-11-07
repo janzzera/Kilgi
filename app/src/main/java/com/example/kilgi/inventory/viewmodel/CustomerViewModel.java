@@ -46,10 +46,10 @@ public class CustomerViewModel extends AndroidViewModel {
     }
 
     public void createCustomer(String displayName, String contactNumber, String address, String notes, CustomerRepository.Callback<CustomerEntity> callback) {
-        repository.createCustomer(displayName, contactNumber, address, notes, UserRepository.LOCAL_USER_ID, callback);
+        repository.createCustomer(displayName, contactNumber, address, notes, null, callback);
     }
 
     public void collectCustomerPayment(String customerId, double totalAmount, String notes, List<OpenCustomerInvoice> openInvoices, CustomerRepository.Callback<CustomerCollectionResult> callback) {
-        repository.collectCustomerPayment(customerId, totalAmount, notes, UserRepository.LOCAL_USER_ID, openInvoices, callback);
+        repository.collectCustomerPayment(customerId, totalAmount, notes, null, openInvoices, callback);
     }
 }

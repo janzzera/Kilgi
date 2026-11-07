@@ -80,20 +80,20 @@ public class LotViewModel extends AndroidViewModel {
                 purchasePaymentSource,
                 standardFreight,
                 freightPaymentSource,
-                UserRepository.LOCAL_USER_ID,
+                null,
                 callback
         );
     }
 
     public void deleteLot(String lotId, LotRepository.Callback<Void> callback) {
-        repository.deleteLot(lotId, UserRepository.LOCAL_USER_ID, callback);
+        repository.deleteLot(lotId, null, callback);
     }
 
     public void addExpense(String lotId, AccountingAccount expenseAccount, double amount, PaymentSource paymentSource, LotRepository.Callback<BatchExpenseEntity> callback) {
-        repository.addExpense(lotId, UserRepository.LOCAL_USER_ID, expenseAccount, amount, paymentSource, callback);
+        repository.addExpense(lotId, null, expenseAccount, amount, paymentSource, callback);
     }
 
     public void logSpoilage(String lotId, double kilosLost, LossType lossType, LotRepository.Callback<SpoilageLogEntity> callback) {
-        repository.logSpoilage(lotId, UserRepository.LOCAL_USER_ID, kilosLost, lossType, callback);
+        repository.logSpoilage(lotId, null, kilosLost, lossType, callback);
     }
 }

@@ -46,10 +46,10 @@ public class ProviderViewModel extends AndroidViewModel {
     }
 
     public void createProvider(String displayName, String contactNumber, String address, String notes, ProviderRepository.Callback<ProviderEntity> callback) {
-        repository.createProvider(displayName, contactNumber, address, notes, UserRepository.LOCAL_USER_ID, callback);
+        repository.createProvider(displayName, contactNumber, address, notes, null, callback);
     }
 
     public void settleProviderBalance(String providerId, double totalAmount, String notes, List<OpenProviderLotPayable> openPayables, ProviderRepository.Callback<ProviderSettlementResult> callback) {
-        repository.settleProviderBalance(providerId, totalAmount, notes, UserRepository.LOCAL_USER_ID, openPayables, callback);
+        repository.settleProviderBalance(providerId, totalAmount, notes, null, openPayables, callback);
     }
 }

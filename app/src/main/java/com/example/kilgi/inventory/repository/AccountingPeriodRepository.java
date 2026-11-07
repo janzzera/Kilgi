@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.example.kilgi.inventory.data.AccountingPeriodDao;
 import com.example.kilgi.inventory.data.AccountingPeriodEntity;
 import com.example.kilgi.inventory.data.KilgiDatabase;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.data.api.ApiService;
 import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.network.ApiClient;
@@ -91,13 +92,19 @@ public class AccountingPeriodRepository {
     public void createAccountingPeriod(String name, long start, long end, String userId, Callback<Void> callback) {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                periodDao.insert(new AccountingPeriodEntity(name, start, end, false, null, userId));
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
+                periodDao.insert(new AccountingPeriodEntity(name, start, end, false, null, activeUserId));
                 SyncManager.scheduleSync(appContext);
                 if (callback != null) callback.onSuccess(null);
             } catch (Exception e) {
                 if (callback != null) callback.onError(e);
             }
         });
+    }
+
+    private String resolveActiveUserId() {
+        UserEntity activeUser = database.userDao().getAnyUserSync();
+        return activeUser != null ? activeUser.userId : UserRepository.LOCAL_USER_ID;
     }
 
     public void closeAccountingPeriod(long periodId, Callback<Void> callback) {

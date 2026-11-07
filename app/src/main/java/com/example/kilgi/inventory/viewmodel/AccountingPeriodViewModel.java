@@ -37,7 +37,7 @@ public class AccountingPeriodViewModel extends AndroidViewModel {
     }
 
     public void createAccountingPeriod(String name, long start, long end, AccountingPeriodRepository.Callback<Void> callback) {
-        repository.createAccountingPeriod(name, start, end, UserRepository.LOCAL_USER_ID, callback);
+        repository.createAccountingPeriod(name, start, end, null, callback);
     }
 
     public void closeAccountingPeriod(long periodId, AccountingPeriodRepository.Callback<Void> callback) {

@@ -40,10 +40,10 @@ public class SalesViewModel extends AndroidViewModel {
     }
 
     public void recordRetailSale(double totalAmount, String notes, SalesRepository.Callback<RetailSaleEntity> callback) {
-        repository.recordRetailSale(totalAmount, notes, UserRepository.LOCAL_USER_ID, callback);
+        repository.recordRetailSale(totalAmount, notes, null, callback);
     }
 
     public void createWholesaleInvoice(String customerId, String description, double totalAmount, String notes, SalesRepository.Callback<WholesaleInvoiceEntity> callback) {
-        repository.createWholesaleInvoice(customerId, description, totalAmount, notes, UserRepository.LOCAL_USER_ID, callback);
+        repository.createWholesaleInvoice(customerId, description, totalAmount, notes, null, callback);
     }
 }

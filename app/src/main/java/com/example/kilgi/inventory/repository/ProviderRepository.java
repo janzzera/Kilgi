@@ -17,6 +17,7 @@ import com.example.kilgi.inventory.data.ProviderLedgerSummary;
 import com.example.kilgi.inventory.data.ProviderPaymentAllocationEntity;
 import com.example.kilgi.inventory.data.ProviderPaymentEntity;
 import com.example.kilgi.inventory.data.SalesDao;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.data.api.ApiService;
 import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.network.ApiClient;
@@ -118,10 +119,11 @@ public class ProviderRepository {
                 if (displayName == null || displayName.trim().isEmpty()) {
                     throw new IllegalArgumentException("Provider name is required.");
                 }
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 long now = System.currentTimeMillis();
                 ProviderEntity provider = new ProviderEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         displayName.trim(),
                         normalizeOptionalText(contactNumber),
                         normalizeOptionalText(address),
@@ -154,10 +156,11 @@ public class ProviderRepository {
                     throw new IllegalArgumentException("No provider found for the selected record.");
                 }
 
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 List<PaymentAllocationEngine.AllocationStep> plan = PaymentAllocationEngine.allocate(totalAmount, openPayables);
                 ProviderPaymentEntity payment = new ProviderPaymentEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         provider.providerId,
                         totalAmount,
                         normalizeOptionalText(notes),
@@ -176,7 +179,7 @@ public class ProviderRepository {
                             index,
                             now
                     ));
-                    LotEntity lot = lotDao.getLotByIdSync(step.getReferenceId(), userId);
+                    LotEntity lot = lotDao.getLotByIdSync(step.getReferenceId(), activeUserId);
                     if (lot != null) {
                         allocatedLots.add(lot);
                     }
@@ -203,6 +206,11 @@ public class ProviderRepository {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String resolveActiveUserId() {
+        UserEntity activeUser = database.userDao().getAnyUserSync();
+        return activeUser != null ? activeUser.userId : UserRepository.LOCAL_USER_ID;
     }
 
     public interface Callback<T> {

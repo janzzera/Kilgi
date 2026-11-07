@@ -11,6 +11,7 @@ import com.example.kilgi.inventory.data.CustomerEntity;
 import com.example.kilgi.inventory.data.CustomerLedgerSummary;
 import com.example.kilgi.inventory.data.CustomerPaymentAllocationEntity;
 import com.example.kilgi.inventory.data.CustomerPaymentEntity;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.data.JournalDao;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.OpenCustomerInvoice;
@@ -115,10 +116,11 @@ public class CustomerRepository {
                 if (displayName == null || displayName.trim().isEmpty()) {
                     throw new IllegalArgumentException("Customer name is required.");
                 }
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 long now = System.currentTimeMillis();
                 CustomerEntity customer = new CustomerEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         displayName.trim(),
                         normalizeOptionalText(contactNumber),
                         normalizeOptionalText(address),
@@ -146,6 +148,7 @@ public class CustomerRepository {
                     throw new IllegalArgumentException("Collection amount must be greater than zero.");
                 }
 
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 CustomerEntity customer = customerDao.getByIdSync(customerId.trim());
                 if (customer == null || customer.isActive != 1) {
                     throw new IllegalArgumentException("No customer found for the selected record.");
@@ -155,7 +158,7 @@ public class CustomerRepository {
                 List<PaymentAllocationEngine.AllocationStep> plan = PaymentAllocationEngine.allocate(totalAmount, openInvoices);
                 CustomerPaymentEntity payment = new CustomerPaymentEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         customer.customerId,
                         totalAmount,
                         normalizeOptionalText(notes),
@@ -195,6 +198,11 @@ public class CustomerRepository {
                 if (callback != null) callback.onError(e);
             }
         });
+    }
+
+    private String resolveActiveUserId() {
+        UserEntity activeUser = database.userDao().getAnyUserSync();
+        return activeUser != null ? activeUser.userId : UserRepository.LOCAL_USER_ID;
     }
 
     private static String normalizeOptionalText(String value) {

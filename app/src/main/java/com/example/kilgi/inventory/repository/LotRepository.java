@@ -18,6 +18,7 @@ import com.example.kilgi.inventory.data.PaymentSource;
 import com.example.kilgi.inventory.data.ProviderDao;
 import com.example.kilgi.inventory.data.ProviderEntity;
 import com.example.kilgi.inventory.data.SpoilageLogEntity;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.data.api.ApiService;
 import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.network.ApiClient;
@@ -156,10 +157,11 @@ public class LotRepository {
                     throw new IllegalArgumentException("Payment source is required.");
                 }
 
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 long now = System.currentTimeMillis();
                 LotEntity lot = new LotEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         provider.providerId,
                         provider.displayName,
                         vegetableType.trim(),
@@ -190,7 +192,8 @@ public class LotRepository {
     public void deleteLot(String lotId, String userId, Callback<Void> callback) {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                LotEntity lot = lotDao.getLotByIdSync(lotId, userId);
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
+                LotEntity lot = lotDao.getLotByIdSync(lotId, activeUserId);
                 if (lot == null) {
                     throw new IllegalArgumentException("No lot found for ID: " + lotId);
                 }
@@ -209,7 +212,8 @@ public class LotRepository {
     public void addExpense(String lotId, String userId, AccountingAccount expenseAccount, double amount, PaymentSource paymentSource, Callback<BatchExpenseEntity> callback) {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                LotEntity lot = lotDao.getLotByIdSync(lotId, userId);
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
+                LotEntity lot = lotDao.getLotByIdSync(lotId, activeUserId);
                 if (lot == null) {
                     throw new IllegalArgumentException("No lot found for ID: " + lotId);
                 }
@@ -252,7 +256,8 @@ public class LotRepository {
     public void logSpoilage(String lotId, String userId, double kilosLost, LossType lossType, Callback<SpoilageLogEntity> callback) {
         KilgiDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                LotWithDetails lotWithDetails = lotDao.getLotWithDetailsSync(lotId, userId);
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
+                LotWithDetails lotWithDetails = lotDao.getLotWithDetailsSync(lotId, activeUserId);
                 if (lotWithDetails == null || lotWithDetails.lot == null) {
                     throw new IllegalArgumentException("No lot found for ID: " + lotId);
                 }
@@ -301,6 +306,11 @@ public class LotRepository {
                 if (callback != null) callback.onError(e);
             }
         });
+    }
+
+    private String resolveActiveUserId() {
+        UserEntity activeUser = database.userDao().getAnyUserSync();
+        return activeUser != null ? activeUser.userId : UserRepository.LOCAL_USER_ID;
     }
 
     public interface Callback<T> {

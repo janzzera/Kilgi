@@ -11,6 +11,7 @@ import com.example.kilgi.inventory.data.CustomerEntity;
 import com.example.kilgi.inventory.data.JournalDao;
 import com.example.kilgi.inventory.data.KilgiDatabase;
 import com.example.kilgi.inventory.data.RetailSaleEntity;
+import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.data.SalesDao;
 import com.example.kilgi.inventory.data.WholesaleInvoiceEntity;
 import com.example.kilgi.inventory.data.api.ApiService;
@@ -128,10 +129,11 @@ public class SalesRepository {
                 if (totalAmount <= 0) {
                     throw new IllegalArgumentException("Retail sale amount must be greater than zero.");
                 }
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 long now = System.currentTimeMillis();
                 RetailSaleEntity sale = new RetailSaleEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         totalAmount,
                         normalizeOptionalText(notes),
                         now
@@ -165,6 +167,7 @@ public class SalesRepository {
                     throw new IllegalArgumentException("Invoice amount must be greater than zero.");
                 }
 
+                String activeUserId = (userId != null && !userId.isEmpty()) ? userId : resolveActiveUserId();
                 CustomerEntity customer = customerDao.getByIdSync(customerId.trim());
                 if (customer == null || customer.isActive != 1) {
                     throw new IllegalArgumentException("No customer found for the selected record.");
@@ -173,7 +176,7 @@ public class SalesRepository {
                 long now = System.currentTimeMillis();
                 WholesaleInvoiceEntity invoice = new WholesaleInvoiceEntity(
                         UUID.randomUUID().toString(),
-                        userId,
+                        activeUserId,
                         customer.customerId,
                         buildInvoiceNumber(now),
                         description.trim(),
@@ -195,6 +198,11 @@ public class SalesRepository {
                 if (callback != null) callback.onError(e);
             }
         });
+    }
+
+    private String resolveActiveUserId() {
+        UserEntity activeUser = database.userDao().getAnyUserSync();
+        return activeUser != null ? activeUser.userId : UserRepository.LOCAL_USER_ID;
     }
 
     private static String buildInvoiceNumber(long timestamp) {

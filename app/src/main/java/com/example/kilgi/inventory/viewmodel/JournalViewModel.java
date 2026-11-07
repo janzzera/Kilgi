@@ -64,6 +64,6 @@ public class JournalViewModel extends AndroidViewModel {
     }
 
     public void postManualAdjustment(long timestamp, AccountingAccount debit, AccountingAccount credit, double amount, String memo, JournalRepository.Callback<Void> callback) {
-        repository.postManualAdjustment(timestamp, debit, credit, amount, memo, UserRepository.LOCAL_USER_ID, callback);
+        repository.postManualAdjustment(timestamp, debit, credit, amount, memo, null, callback);
     }
 }
