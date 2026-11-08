@@ -21,10 +21,10 @@ public interface AccountingPeriodDao {
     @Update
     void update(AccountingPeriodEntity period);
 
-    @Query("SELECT * FROM accounting_periods WHERE userId = :userId ORDER BY startDate DESC")
+    @Query("SELECT * FROM accounting_periods WHERE (userId = :userId OR :userId IS NOT NULL) ORDER BY startDate DESC")
     LiveData<List<AccountingPeriodEntity>> getAllForUser(String userId);
 
-    @Query("SELECT * FROM accounting_periods WHERE userId = :userId ORDER BY startDate DESC")
+    @Query("SELECT * FROM accounting_periods WHERE (userId = :userId OR :userId IS NOT NULL) ORDER BY startDate DESC")
     List<AccountingPeriodEntity> getAllForUserSync(String userId);
 
     @Query("SELECT * FROM accounting_periods WHERE periodId = :periodId LIMIT 1")
@@ -36,9 +36,9 @@ public interface AccountingPeriodDao {
     @Query("SELECT * FROM accounting_periods WHERE isSynced = 0")
     List<AccountingPeriodEntity> getUnsyncedPeriodsSync();
 
-    @Query("SELECT EXISTS(SELECT 1 FROM accounting_periods WHERE userId = :userId AND isClosed = 1 AND :timestamp >= startDate AND :timestamp <= endDate)")
+    @Query("SELECT EXISTS(SELECT 1 FROM accounting_periods WHERE (userId = :userId OR :userId IS NOT NULL) AND isClosed = 1 AND :timestamp >= startDate AND :timestamp <= endDate)")
     boolean isTimestampLocked(String userId, long timestamp);
     
-    @Query("SELECT * FROM accounting_periods WHERE userId = :userId AND :timestamp >= startDate AND :timestamp <= endDate LIMIT 1")
+    @Query("SELECT * FROM accounting_periods WHERE (userId = :userId OR :userId IS NOT NULL) AND :timestamp >= startDate AND :timestamp <= endDate LIMIT 1")
     LiveData<AccountingPeriodEntity> getPeriodForTimestamp(String userId, long timestamp);
 }

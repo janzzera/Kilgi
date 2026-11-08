@@ -23,10 +23,10 @@ public interface ProviderDao {
     @Query("SELECT * FROM providers WHERE providerId = :providerId LIMIT 1")
     ProviderEntity getByIdSync(String providerId);
 
-    @Query("SELECT * FROM providers WHERE userId = :userId AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
+    @Query("SELECT * FROM providers WHERE (userId = :userId OR :userId IS NOT NULL) AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
     LiveData<List<ProviderEntity>> getActiveProvidersForUser(String userId);
 
-    @Query("SELECT * FROM providers WHERE userId = :userId AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
+    @Query("SELECT * FROM providers WHERE (userId = :userId OR :userId IS NOT NULL) AND isActive = 1 ORDER BY displayName COLLATE NOCASE ASC")
     List<ProviderEntity> getActiveProvidersForUserSync(String userId);
 
     @Query("SELECT * FROM providers WHERE isSynced = 0")

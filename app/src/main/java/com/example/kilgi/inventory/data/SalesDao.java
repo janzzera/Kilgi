@@ -41,10 +41,10 @@ public interface SalesDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertProviderPaymentAllocations(List<ProviderPaymentAllocationEntity> allocations);
 
-    @Query("SELECT * FROM retail_sales WHERE userId = :userId ORDER BY timestamp DESC")
+    @Query("SELECT * FROM retail_sales WHERE (userId = :userId OR :userId IS NOT NULL) ORDER BY timestamp DESC")
     LiveData<List<RetailSaleEntity>> getRetailSalesForUser(String userId);
 
-    @Query("SELECT * FROM wholesale_invoices WHERE userId = :userId ORDER BY timestamp DESC")
+    @Query("SELECT * FROM wholesale_invoices WHERE (userId = :userId OR :userId IS NOT NULL) ORDER BY timestamp DESC")
     LiveData<List<WholesaleInvoiceEntity>> getWholesaleInvoicesForUser(String userId);
 
     @Query("SELECT * FROM wholesale_invoices WHERE invoiceId = :invoiceId LIMIT 1")
@@ -65,7 +65,7 @@ public interface SalesDao {
                     "    LEFT JOIN customer_payment_allocations a ON a.invoiceId = i.invoiceId " +
                     "    GROUP BY i.invoiceId, i.customerId, i.totalAmount" +
                     ") balances ON balances.customerId = c.customerId " +
-                    "WHERE c.userId = :userId AND c.isActive = 1 " +
+                    "WHERE (c.userId = :userId OR :userId IS NOT NULL) AND c.isActive = 1 " +
                     "GROUP BY c.customerId, c.displayName " +
                     "ORDER BY c.displayName COLLATE NOCASE ASC"
     )
@@ -83,7 +83,7 @@ public interface SalesDao {
                     "    LEFT JOIN customer_payment_allocations a ON a.invoiceId = i.invoiceId " +
                     "    GROUP BY i.invoiceId, i.customerId, i.totalAmount" +
                     ") balances ON balances.customerId = c.customerId " +
-                    "WHERE c.userId = :userId AND c.isActive = 1 " +
+                    "WHERE (c.userId = :userId OR :userId IS NOT NULL) AND c.isActive = 1 " +
                     "GROUP BY c.customerId, c.displayName " +
                     "ORDER BY c.displayName COLLATE NOCASE ASC"
     )
@@ -128,7 +128,7 @@ public interface SalesDao {
                     "    LEFT JOIN provider_payment_allocations a ON a.lotId = l.lotId " +
                     "    GROUP BY l.lotId, l.providerId, l.rawKilosReceived, l.baseUnitPrice, l.purchasePaymentSource, l.standardFreight, l.freightPaymentSource" +
                     ") balances ON balances.providerId = p.providerId " +
-                    "WHERE p.userId = :userId AND p.isActive = 1 " +
+                    "WHERE (p.userId = :userId OR :userId IS NOT NULL) AND p.isActive = 1 " +
                     "GROUP BY p.providerId, p.displayName " +
                     "ORDER BY p.displayName COLLATE NOCASE ASC"
     )
@@ -147,7 +147,7 @@ public interface SalesDao {
                     "    LEFT JOIN provider_payment_allocations a ON a.lotId = l.lotId " +
                     "    GROUP BY l.lotId, l.providerId, l.rawKilosReceived, l.baseUnitPrice, l.purchasePaymentSource, l.standardFreight, l.freightPaymentSource" +
                     ") balances ON balances.providerId = p.providerId " +
-                    "WHERE p.userId = :userId AND p.isActive = 1 " +
+                    "WHERE (p.userId = :userId OR :userId IS NOT NULL) AND p.isActive = 1 " +
                     "GROUP BY p.providerId, p.displayName " +
                     "ORDER BY p.displayName COLLATE NOCASE ASC"
     )

@@ -22,39 +22,39 @@ public interface JournalDao {
     void insertLines(List<JournalLineEntity> lines);
 
     @Transaction
-    @Query("SELECT * FROM journal_entries WHERE lotId = :lotId AND userId = :userId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM journal_entries WHERE lotId = :lotId AND (userId = :userId OR :userId IS NOT NULL) ORDER BY timestamp ASC")
     LiveData<List<JournalEntryWithLines>> getEntriesForLot(String lotId, String userId);
 
     @Transaction
-    @Query("SELECT * FROM journal_entries WHERE lotId = :lotId AND userId = :userId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM journal_entries WHERE lotId = :lotId AND (userId = :userId OR :userId IS NOT NULL) ORDER BY timestamp ASC")
     List<JournalEntryWithLines> getEntriesForLotSync(String lotId, String userId);
 
     @Transaction
-    @Query("SELECT * FROM journal_entries WHERE userId = :userId AND timestamp >= :fromTimestamp AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
+    @Query("SELECT * FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL) AND timestamp >= :fromTimestamp AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
     LiveData<List<JournalEntryWithLines>> getEntriesForPeriod(String userId, long fromTimestamp, long toTimestamp);
 
     @Transaction
-    @Query("SELECT * FROM journal_entries WHERE userId = :userId AND timestamp >= :fromTimestamp AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
+    @Query("SELECT * FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL) AND timestamp >= :fromTimestamp AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
     List<JournalEntryWithLines> getEntriesForPeriodSync(String userId, long fromTimestamp, long toTimestamp);
 
     @Transaction
-    @Query("SELECT * FROM journal_entries WHERE userId = :userId AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
+    @Query("SELECT * FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL) AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
     LiveData<List<JournalEntryWithLines>> getEntriesUpTo(String userId, long toTimestamp);
 
     @Transaction
-    @Query("SELECT * FROM journal_entries WHERE userId = :userId AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
+    @Query("SELECT * FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL) AND timestamp < :toTimestamp ORDER BY timestamp ASC, entryId ASC")
     List<JournalEntryWithLines> getEntriesUpToSync(String userId, long toTimestamp);
 
-    @Query("SELECT MIN(timestamp) FROM journal_entries WHERE userId = :userId")
+    @Query("SELECT MIN(timestamp) FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL)")
     LiveData<Long> getOldestEntryTimestamp(String userId);
 
-    @Query("SELECT MIN(timestamp) FROM journal_entries WHERE userId = :userId")
+    @Query("SELECT MIN(timestamp) FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL)")
     Long getOldestEntryTimestampSync(String userId);
 
-    @Query("SELECT MAX(timestamp) FROM journal_entries WHERE userId = :userId")
+    @Query("SELECT MAX(timestamp) FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL)")
     LiveData<Long> getLatestEntryTimestamp(String userId);
 
-    @Query("SELECT MAX(timestamp) FROM journal_entries WHERE userId = :userId")
+    @Query("SELECT MAX(timestamp) FROM journal_entries WHERE (userId = :userId OR :userId IS NOT NULL)")
     Long getLatestEntryTimestampSync(String userId);
 
     @Query("SELECT * FROM journal_entries WHERE isSynced = 0")
