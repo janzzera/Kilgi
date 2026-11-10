@@ -16,6 +16,8 @@ public class TokenManager {
     private static final String PREFS_FILENAME = "secure_auth_prefs";
     private static final String KEY_JWT_TOKEN = "jwt_token";
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
+    private static final String KEY_TOKEN_TIMESTAMP = "jwt_token_timestamp";
+    private static final long TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000L; // 24 hours
 
     private SharedPreferences securePreferences;
 
@@ -39,13 +41,18 @@ public class TokenManager {
         }
     }
 
+    public void saveToken(String accessToken) {
+        saveTokens(accessToken, null);
+    }
+
     public void saveTokens(String accessToken, @Nullable String refreshToken) {
-        if(securePreferences == null)
+        if (securePreferences == null)
             return;
 
         SharedPreferences.Editor editor = securePreferences.edit();
         editor.putString(KEY_JWT_TOKEN, accessToken);
-        if(refreshToken != null)
+        editor.putLong(KEY_TOKEN_TIMESTAMP, System.currentTimeMillis());
+        if (refreshToken != null)
             editor.putString(KEY_REFRESH_TOKEN, refreshToken);
         else
             editor.remove(KEY_REFRESH_TOKEN);
@@ -55,26 +62,41 @@ public class TokenManager {
 
     @Nullable
     public String getAccessToken() {
-        if(securePreferences == null)
+        if (securePreferences == null)
             return null;
         return securePreferences.getString(KEY_JWT_TOKEN, null);
     }
 
     @Nullable
     public String getRefreshToken() {
-        if(securePreferences == null)
+        if (securePreferences == null)
             return null;
         return securePreferences.getString(KEY_REFRESH_TOKEN, null);
     }
 
+    public long getTokenTimestamp() {
+        if (securePreferences == null)
+            return 0;
+        return securePreferences.getLong(KEY_TOKEN_TIMESTAMP, 0);
+    }
+
+    public boolean isTokenValid() {
+        String token = getAccessToken();
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+        long savedTime = getTokenTimestamp();
+        return (System.currentTimeMillis() - savedTime) < TOKEN_EXPIRY_MS;
+    }
+
     public void clearTokens() {
-        if(securePreferences == null)
+        if (securePreferences == null)
             return;
 
         securePreferences.edit()
                 .remove(KEY_JWT_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
+                .remove(KEY_TOKEN_TIMESTAMP)
                 .apply();
     }
-
 }

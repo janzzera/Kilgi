@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.data.api.AuthResponse;
 import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.repository.UserRepository;
 
@@ -39,5 +40,9 @@ public class UserViewModel extends AndroidViewModel {
 
     public void registerOrSetupUser(UserEntity user, UserRepository.Callback<UserEntity> callback) {
         repository.registerOrSetupUser(user, callback);
+    }
+
+    public void loginOnline(String username, String password, UserRepository.Callback<AuthResponse> callback) {
+        repository.loginOnline(username, password, callback);
     }
 }

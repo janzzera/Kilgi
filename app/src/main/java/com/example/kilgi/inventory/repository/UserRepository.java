@@ -5,9 +5,12 @@ import android.content.Context;
 import androidx.lifecycle.LiveData;
 
 import com.example.kilgi.inventory.data.KilgiDatabase;
+import com.example.kilgi.inventory.data.TokenManager;
 import com.example.kilgi.inventory.data.UserDao;
 import com.example.kilgi.inventory.data.UserEntity;
 import com.example.kilgi.inventory.data.api.ApiService;
+import com.example.kilgi.inventory.data.api.AuthResponse;
+import com.example.kilgi.inventory.data.api.LoginRequest;
 import com.example.kilgi.inventory.data.common.Resource;
 import com.example.kilgi.inventory.network.ApiClient;
 import com.example.kilgi.inventory.network.NetworkBoundResource;
@@ -24,12 +27,14 @@ public class UserRepository {
 
     private final UserDao userDao;
     private final ApiService apiService;
+    private final TokenManager tokenManager;
     private final Context appContext;
 
     public UserRepository(Context context) {
         this.appContext = context.getApplicationContext();
         this.userDao = KilgiDatabase.getInstance(context).userDao();
         this.apiService = ApiClient.getApiService(context);
+        this.tokenManager = new TokenManager(context);
         ensureLocalUserExists();
     }
 
@@ -92,6 +97,40 @@ public class UserRepository {
             SyncManager.scheduleSync(appContext);
             if (onComplete != null) {
                 AppExecutors.runOnMainThread(onComplete);
+            }
+        });
+    }
+
+    public void loginOnline(String username, String password, Callback<AuthResponse> callback) {
+        KilgiDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                Response<AuthResponse> response = apiService.login(new LoginRequest(username, password)).execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    AuthResponse authResponse = response.body();
+                    tokenManager.saveToken(authResponse.token);
+                    if (callback != null) {
+                        AppExecutors.runOnMainThread(() -> callback.onSuccess(authResponse));
+                    }
+                } else {
+                    String errorMsg = "Login failed (HTTP " + response.code() + ")";
+                    if (response.errorBody() != null) {
+                        try {
+                            String errBody = response.errorBody().string();
+                            if (!errBody.trim().isEmpty()) {
+                                errorMsg += ": " + errBody;
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    String finalErrorMsg = errorMsg;
+                    if (callback != null) {
+                        AppExecutors.runOnMainThread(() -> callback.onError(new Exception(finalErrorMsg)));
+                    }
+                }
+            } catch (Exception e) {
+                if (callback != null) {
+                    AppExecutors.runOnMainThread(() -> callback.onError(e));
+                }
             }
         });
     }

@@ -14,7 +14,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.kilgi.inventory.data.TokenManager;
 import com.example.kilgi.inventory.data.UserEntity;
+import com.example.kilgi.inventory.data.api.AuthResponse;
+import com.example.kilgi.inventory.network.NetworkUtils;
+import com.example.kilgi.inventory.repository.UserRepository;
 import com.example.kilgi.inventory.security.PasswordHasher;
 import com.example.kilgi.inventory.viewmodel.UserViewModel;
 
@@ -23,6 +27,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText passwordInput;
     private TextView businessNameLabel;
     private UserViewModel userViewModel;
+    private TokenManager tokenManager;
     private UserEntity currentUser;
 
     @Override
@@ -38,6 +43,7 @@ public class LoginActivity extends AppCompatActivity {
 
         passwordInput = findViewById(R.id.edit_login_password);
         businessNameLabel = findViewById(R.id.text_login_business_name);
+        tokenManager = new TokenManager(this);
 
         userViewModel = new ViewModelProvider(this).get(UserViewModel.class);
         userViewModel.getLocalUser().observe(this, userResource -> {
@@ -60,7 +66,37 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        if (currentUser != null) {
+        if (currentUser == null) {
+            Toast.makeText(this, "No user account set up on this device.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean isOnline = NetworkUtils.isNetworkAvailable(this);
+        boolean hasValidToken = tokenManager.isTokenValid();
+
+        if (isOnline && !hasValidToken) {
+            userViewModel.loginOnline(currentUser.username, password, new UserRepository.Callback<AuthResponse>() {
+                @Override
+                public void onSuccess(AuthResponse result) {
+                    MainActivity.isUserAuthenticated = true;
+                    Toast.makeText(LoginActivity.this, "Online login successful!", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                    finish();
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    if (PasswordHasher.verifyPasswordHash(password, currentUser.passwordHash, currentUser.passwordSalt)) {
+                        MainActivity.isUserAuthenticated = true;
+                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                        finish();
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Login failed: " + throwable.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                        passwordInput.setText("");
+                    }
+                }
+            });
+        } else {
             if (PasswordHasher.verifyPasswordHash(password, currentUser.passwordHash, currentUser.passwordSalt)) {
                 MainActivity.isUserAuthenticated = true;
                 startActivity(new Intent(this, MainActivity.class));
