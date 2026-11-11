@@ -73,6 +73,9 @@ public class ProviderRepository {
             @Override
             protected void saveCallResult(List<ProviderEntity> item) {
                 if (item != null) {
+                    for (ProviderEntity provider : item) {
+                        provider.isSynced = true;
+                    }
                     providerDao.insertAll(item);
                 }
             }
@@ -99,6 +102,7 @@ public class ProviderRepository {
             @Override
             protected void saveCallResult(ProviderEntity item) {
                 if (item != null) {
+                    item.isSynced = true;
                     providerDao.insert(item);
                 }
             }

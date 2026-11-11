@@ -65,6 +65,9 @@ public class SalesRepository {
             @Override
             protected void saveCallResult(List<RetailSaleEntity> item) {
                 if (item != null) {
+                    for (RetailSaleEntity sale : item) {
+                        sale.isSynced = true;
+                    }
                     salesDao.insertRetailSales(item);
                 }
             }
@@ -91,6 +94,9 @@ public class SalesRepository {
             @Override
             protected void saveCallResult(List<WholesaleInvoiceEntity> item) {
                 if (item != null) {
+                    for (WholesaleInvoiceEntity invoice : item) {
+                        invoice.isSynced = true;
+                    }
                     salesDao.insertWholesaleInvoices(item);
                 }
             }
@@ -117,6 +123,7 @@ public class SalesRepository {
             @Override
             protected void saveCallResult(WholesaleInvoiceEntity item) {
                 if (item != null) {
+                    item.isSynced = true;
                     salesDao.insertWholesaleInvoice(item);
                 }
             }

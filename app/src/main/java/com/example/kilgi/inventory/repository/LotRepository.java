@@ -71,6 +71,9 @@ public class LotRepository {
             @Override
             protected void saveCallResult(List<LotEntity> item) {
                 if (item != null) {
+                    for (LotEntity lot : item) {
+                        lot.isSynced = true;
+                    }
                     lotDao.insertAll(item);
                 }
             }
@@ -97,6 +100,7 @@ public class LotRepository {
             @Override
             protected void saveCallResult(LotEntity item) {
                 if (item != null) {
+                    item.isSynced = true;
                     lotDao.insert(item);
                 }
             }

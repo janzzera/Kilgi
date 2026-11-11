@@ -70,6 +70,9 @@ public class CustomerRepository {
             @Override
             protected void saveCallResult(List<CustomerEntity> item) {
                 if (item != null) {
+                    for (CustomerEntity customer : item) {
+                        customer.isSynced = true;
+                    }
                     customerDao.insertAll(item);
                 }
             }
@@ -96,6 +99,7 @@ public class CustomerRepository {
             @Override
             protected void saveCallResult(CustomerEntity item) {
                 if (item != null) {
+                    item.isSynced = true;
                     customerDao.insert(item);
                 }
             }

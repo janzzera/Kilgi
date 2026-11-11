@@ -60,6 +60,7 @@ public class JournalRepository {
                     database.runInTransaction(() -> {
                         for (JournalEntryWithLines entry : item) {
                             if (entry.entry != null) {
+                                entry.entry.isSynced = true;
                                 journalDao.insertEntry(entry.entry);
                             }
                             if (entry.lines != null) {
@@ -112,6 +113,7 @@ public class JournalRepository {
                     database.runInTransaction(() -> {
                         for (JournalEntryWithLines entry : item) {
                             if (entry.entry != null) {
+                                entry.entry.isSynced = true;
                                 journalDao.insertEntry(entry.entry);
                             }
                             if (entry.lines != null) {
@@ -161,6 +163,7 @@ public class JournalRepository {
                     database.runInTransaction(() -> {
                         for (JournalEntryWithLines entry : item) {
                             if (entry.entry != null) {
+                                entry.entry.isSynced = true;
                                 journalDao.insertEntry(entry.entry);
                             }
                             if (entry.lines != null) {

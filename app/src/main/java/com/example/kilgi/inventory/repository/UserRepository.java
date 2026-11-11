@@ -81,6 +81,7 @@ public class UserRepository {
             @Override
             protected void saveCallResult(UserEntity item) {
                 if (item != null) {
+                    item.isSynced = true;
                     userDao.insert(item);
                 }
             }

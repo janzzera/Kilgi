@@ -53,6 +53,9 @@ public class AccountingPeriodRepository {
             @Override
             protected void saveCallResult(List<AccountingPeriodEntity> item) {
                 if (item != null) {
+                    for (AccountingPeriodEntity period : item) {
+                        period.isSynced = true;
+                    }
                     periodDao.insertAll(item);
                 }
             }
@@ -79,6 +82,7 @@ public class AccountingPeriodRepository {
             @Override
             protected void saveCallResult(AccountingPeriodEntity item) {
                 if (item != null) {
+                    item.isSynced = true;
                     periodDao.insert(item);
                 }
             }
