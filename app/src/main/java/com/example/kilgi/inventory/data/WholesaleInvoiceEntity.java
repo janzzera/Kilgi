@@ -40,6 +40,7 @@ public class WholesaleInvoiceEntity {
     public final double totalAmount;
     public final String notes;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public WholesaleInvoiceEntity(
             @NonNull String invoiceId,

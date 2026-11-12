@@ -34,7 +34,7 @@ public class ModuleOneAccountingTest {
         assertEquals(4, draft.getLines().size());
         assertEquals(170.0, sumByType(draft.getLines(), JournalLineType.DEBIT), 0.0001);
         assertEquals(170.0, sumByType(draft.getLines(), JournalLineType.CREDIT), 0.0001);
-        assertEquals(AccountingCatalog.INVENTORY_CODE, draft.getLines().get(0).accountCode);
+        assertEquals(AccountingCatalog.PURCHASES_CODE, draft.getLines().get(0).accountCode);
         assertEquals(AccountingCatalog.ACCOUNTS_PAYABLE_CODE, draft.getLines().get(1).accountCode);
         assertEquals(AccountingCatalog.FREIGHT_IN_CODE, draft.getLines().get(2).accountCode);
         assertEquals(AccountingCatalog.CASH_CODE, draft.getLines().get(3).accountCode);
@@ -70,13 +70,13 @@ public class ModuleOneAccountingTest {
         assertEquals(AccountingAccount.Category.REVENUE, AccountingCatalog.SALES.getCategory());
         assertEquals(AccountingAccount.Category.COST, AccountingCatalog.PURCHASES.getCategory());
         assertEquals(AccountingAccount.Category.EXPENSE, AccountingCatalog.FREIGHT_OUT.getCategory());
-        assertEquals(4, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.ASSET).size());
-        assertEquals(2, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.LIABILITY).size());
+        assertEquals(8, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.ASSET).size());
+        assertEquals(4, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.LIABILITY).size());
         assertEquals(2, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.OWNER_EQUITY).size());
         assertEquals(3, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.REVENUE).size());
         assertEquals(5, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.COST).size());
-        assertEquals(8, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.EXPENSE).size());
-        assertEquals(24, AccountingCatalog.getAllAccounts().size());
+        assertEquals(11, AccountingCatalog.getAccountsByCategory(AccountingAccount.Category.EXPENSE).size());
+        assertEquals(33, AccountingCatalog.getAllAccounts().size());
         assertEquals(AccountingCatalog.FREIGHT_IN_CODE, AccountingCatalog.getLotExpenseAccounts().get(0).getCode());
     }
 

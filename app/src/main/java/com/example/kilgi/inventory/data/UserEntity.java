@@ -26,6 +26,7 @@ public class UserEntity {
     public final String accountStatus;
     public final long createdAt;
     public final long updatedAt;
+    public boolean isSynced = false;
 
     public UserEntity(
             @NonNull String userId,

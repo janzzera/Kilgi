@@ -31,6 +31,7 @@ public class BatchExpenseEntity {
     @NonNull
     public final String paymentSource;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public BatchExpenseEntity(
             @NonNull String expenseId,

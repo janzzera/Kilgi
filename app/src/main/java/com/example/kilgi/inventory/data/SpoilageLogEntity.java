@@ -27,6 +27,7 @@ public class SpoilageLogEntity {
     @NonNull
     public final String lossType;
     public final long timestamp;
+    public boolean isSynced = false;
 
     public SpoilageLogEntity(
             @NonNull String logId,

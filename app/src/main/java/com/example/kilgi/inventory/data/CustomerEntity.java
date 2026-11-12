@@ -31,6 +31,7 @@ public class CustomerEntity {
     public final int isActive;
     public final long createdAt;
     public final long updatedAt;
+    public boolean isSynced = false;
 
     public CustomerEntity(
             @NonNull String customerId,

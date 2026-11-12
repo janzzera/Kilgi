@@ -6,6 +6,9 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Database(
         entities = {
                 UserEntity.class,
@@ -24,12 +27,15 @@ import androidx.room.RoomDatabase;
                 ProviderPaymentAllocationEntity.class,
                 AccountingPeriodEntity.class
         },
-        version = 4,
+        version = 5,
         exportSchema = false
 )
 public abstract class KilgiDatabase extends RoomDatabase {
 
     private static volatile KilgiDatabase instance;
+    private static final int NUMBER_OF_THREADS = 4;
+    public static final ExecutorService databaseWriteExecutor =
+            Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
     public abstract UserDao userDao();
 
