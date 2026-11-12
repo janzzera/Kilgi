@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.kilgi"
+        applicationId = "com.johnargiehista.kilgi"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -26,6 +26,8 @@ android {
             optimization {
                 enable = false
             }
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
     compileOptions {
